@@ -1,0 +1,54 @@
+/* DataTable.css */
+
+.table-container {
+    padding: 20px;
+    background-color: #f0f2f5;
+  }
+  
+  .table-row {
+    font-size: 14px;
+    font-family: 'Roboto', Arial, sans-serif;
+  }
+  
+  .table-text {
+    font-weight: 500;
+    color: #333333;
+  }
+  
+  .ant-table-thead > tr > th {
+    background-color: #1D3557 !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  
+  .ant-table-tbody > tr:nth-child(even) > td {
+    background-color: #fafafa;
+  }
+  
+  .ant-table-tbody > tr:hover > td {
+    background-color: #e6f7ff;
+  }
+  
+  .ant-pagination-item,
+  .ant-pagination-item a {
+    font-size: 14px;
+  }
+
+  /* src/components/DataTable.css */
+
+.table-container {
+    margin-top: 20px;
+  }
+  
+  .table-text {
+    font-weight: 500;
+    color: #212121;
+  }
+  
+  .table-row {
+    font-size: 14px;
+    font-family: 'Poppins', Arial, sans-serif;
+  }
+  
+  

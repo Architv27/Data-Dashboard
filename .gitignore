@@ -1,0 +1,9 @@
+# Ignore __pycache__ in specific directories
+/backend/app/routers/__pycache__/
+/backend/app/__pycache__/
+
+# Ignore the venv folder in the backend
+/backend/venv/
+
+# Ignore node_modules in the frontend
+/frontend/node_modules/
