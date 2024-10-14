@@ -62,7 +62,7 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
   const fetchData = () => {
     setLoading(true);
     axios
-      .get('http://localhost:8000/products/')
+      .get('http://localhost:8000/data/')
       .then((response) => {
         const products = response.data.map((product: any) => ({
           ...product,
