@@ -1,54 +1,92 @@
-/* DataTable.css */
+/* src/components/DataTable.css */
 
+/* Container Styling */
 .table-container {
-    padding: 20px;
-    background-color: #f0f2f5;
-  }
-  
-  .table-row {
-    font-size: 14px;
-    font-family: 'Roboto', Arial, sans-serif;
-  }
-  
-  .table-text {
-    font-weight: 500;
-    color: #333333;
-  }
-  
-  .ant-table-thead > tr > th {
-    background-color: #1D3557 !important;
-    color: #ffffff !important;
-    font-weight: 600;
-    font-size: 15px;
-  }
-  
-  .ant-table-tbody > tr:nth-child(even) > td {
-    background-color: #fafafa;
-  }
-  
-  .ant-table-tbody > tr:hover > td {
-    background-color: #e6f7ff;
-  }
-  
-  .ant-pagination-item,
-  .ant-pagination-item a {
-    font-size: 14px;
+  padding: 20px;
+  background-color: #ffffff; /* White background for a clean look */
+  border-radius: 8px; /* Rounded corners for modern aesthetics */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
+  margin: 20px auto; /* Center the table container */
+  max-width: 1200px; /* Limit the maximum width for better readability */
+}
+
+/* Table Text Styling */
+.table-text {
+  font-size: 14px;
+  color: #333333; /* Dark grey for high readability */
+}
+
+/* Table Row Hover Effect */
+.table-row:hover {
+  background-color: #f0f4f8; /* Light blue-grey for a soothing hover effect */
+}
+
+/* Table Header Styling */
+.ant-table-thead > tr > th {
+  background-color:  #1D3557; /* Soft light blue-grey */
+  font-weight: 600; /* Bold font for headers */
+  color: #595959; /* Medium grey for header text */
+  text-align: left; /* Left align header text */
+  border-bottom: 1px solid #d9d9d9; /* Subtle border below headers */
+}
+
+/* Table Body Styling */
+.ant-table-tbody > tr > td {
+  vertical-align: middle; /* Center content vertically */
+  color: #595959; /* Medium grey for table content */
+  padding: 12px 16px; /* Adequate padding for content spacing */
+}
+
+/* Modal Form Styling */
+.modal-form {
+  max-height: 60vh; /* Prevent modal from exceeding viewport height */
+  overflow-y: auto; /* Enable vertical scrolling if content overflows */
+}
+
+.modal-form-item {
+  margin-bottom: 16px; /* Consistent spacing between form items */
+}
+
+/* Tooltip Styling (Optional: Override if necessary) */
+.ant-tooltip-inner {
+  background-color: #ffffff; /* White background for tooltips */
+  color: #333333; /* Dark grey text for tooltips */
+  border: 1px solid #d9d9d9; /* Subtle border */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Shadow for depth */
+}
+
+/* Responsive Design Adjustments */
+@media (max-width: 992px) {
+  .table-container {
+    padding: 15px;
+    margin: 15px;
   }
 
-  /* src/components/DataTable.css */
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 10px 12px;
+  }
+}
 
-.table-container {
-    margin-top: 20px;
+@media (max-width: 768px) {
+  .table-container {
+    padding: 10px;
+    margin: 10px;
   }
-  
+
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 8px 10px;
+  }
+
+  /* Adjust font size for smaller screens */
   .table-text {
-    font-weight: 500;
-    color: #212121;
+    font-size: 13px;
   }
-  
-  .table-row {
-    font-size: 14px;
-    font-family: 'Poppins', Arial, sans-serif;
+
+  /* Stack actions vertically on small screens */
+  .ant-table-thead > tr > th:last-child,
+  .ant-table-tbody > tr > td:last-child {
+    text-align: center;
   }
-  
-  
+}

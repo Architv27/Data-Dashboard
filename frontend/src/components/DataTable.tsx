@@ -17,31 +17,36 @@ import {
   Button,
   Popconfirm,
   message,
+  Tooltip,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   DesktopOutlined,
   AppstoreOutlined,
   ShoppingCartOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import './DataTable.css';
 
+// Define the Product interface with appropriate types
 interface Product {
   key: string;
   _id?: string;
   product_name: string;
   category: string;
-  discounted_price: number | null;
-  actual_price: number | null;
-  discount_percentage: number | null;
-  rating: number | null;
-  rating_count: number | null;
+  discounted_price: string; // Changed to string
+  actual_price: string;     // Changed to string
+  discount_percentage: string; // Changed to string
+  rating: number;           // Remains as number (integer)
+  rating_count: string;     // Changed to string
   about_product?: string;
   img_link?: string;
   product_link?: string;
 }
 
-// Define and export the DataTableRef interface
+// Define and export the DataTableRef interface for parent component access
 export interface DataTableRef {
   handleAdd: () => void;
 }
@@ -54,27 +59,34 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [form] = Form.useForm();
 
+  // Expose handleAdd to parent component via ref
   useImperativeHandle(ref, () => ({
     handleAdd,
   }));
 
+  // Base API URL from environment variables
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+
   // Fetch data from the backend
-  const fetchData = () => {
+  const fetchData = async () => {
     setLoading(true);
-    axios
-      .get('http://localhost:8000/data/')
-      .then((response) => {
-        const products = response.data.map((product: any) => ({
-          ...product,
-          key: product._id,
-        }));
-        setData(products);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error(error);
-        setLoading(false);
-      });
+    try {
+      const response = await axios.get(`${API_BASE_URL}/data/`);
+      const products: Product[] = response.data.map((product: any) => ({
+        ...product,
+        key: product._id,
+        discounted_price: product.discounted_price?.toString() || '',
+        actual_price: product.actual_price?.toString() || '',
+        discount_percentage: product.discount_percentage?.toString() || '',
+        rating_count: product.rating_count?.toString() || '',
+      }));
+      setData(products);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      message.error('Failed to fetch products from the database.');
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -92,58 +104,66 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
   const handleEdit = (product: Product) => {
     setIsEditMode(true);
     setCurrentProduct(product);
-    form.setFieldsValue(product);
+    form.setFieldsValue({
+      ...product,
+      discounted_price: product.discounted_price,
+      actual_price: product.actual_price,
+      discount_percentage: product.discount_percentage,
+      rating_count: product.rating_count,
+    });
     setIsModalVisible(true);
   };
 
-  const handleDelete = (key: string) => {
-    axios
-      .delete(`http://localhost:8000/products/${key}`)
-      .then(() => {
-        message.success('Product deleted successfully');
-        fetchData();
-      })
-      .catch((error) => {
-        console.error(error);
-        message.error('Failed to delete product');
-      });
+  const handleDelete = async (key: string) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/products/${key}`);
+      message.success('Product deleted successfully');
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      message.error('Failed to delete product');
+    }
   };
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        if (isEditMode && currentProduct) {
-          // Update existing product
-          axios
-            .put(`http://localhost:8000/products/${currentProduct.key}`, values)
-            .then(() => {
-              message.success('Product updated successfully');
-              setIsModalVisible(false);
-              fetchData();
-            })
-            .catch((error) => {
-              console.error(error);
-              message.error('Failed to update product');
-            });
-        } else {
-          // Add new product
-          axios
-            .post('http://localhost:8000/products/', values)
-            .then(() => {
-              message.success('Product added successfully');
-              setIsModalVisible(false);
-              fetchData();
-            })
-            .catch((error) => {
-              console.error(error);
-              message.error('Failed to add product');
-            });
-        }
-      })
-      .catch((info) => {
-        console.log('Validate Failed:', info);
-      });
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      // Process form values
+      const processedValues = {
+        ...values,
+        discounted_price: values.discounted_price.toString(),
+        actual_price: values.actual_price.toString(),
+        discount_percentage: values.discount_percentage.toString(),
+        rating_count: values.rating_count.toString(),
+        rating: Math.floor(values.rating), // Ensure rating is integer
+      };
+
+      if (isEditMode && currentProduct) {
+        // Update existing product
+        await axios.put(`${API_BASE_URL}/products/${currentProduct.key}`, processedValues);
+        message.success('Product updated successfully');
+      } else {
+        // Add new product
+        await axios.post(`${API_BASE_URL}/products/`, processedValues);
+        message.success('Product added successfully');
+      }
+      setIsModalVisible(false);
+      fetchData();
+    } catch (error: any) {
+      if (error.response) {
+        // Server responded with a status other than 2xx
+        console.error('API Error:', error.response);
+        message.error(`Failed to ${isEditMode ? 'update' : 'add'} product: ${error.response.data.detail || ''}`);
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error('No response:', error.request);
+        message.error('No response from the server. Please try again later.');
+      } else {
+        // Something else happened
+        console.error('Error:', error.message);
+        message.error(`Failed to ${isEditMode ? 'update' : 'add'} product.`);
+      }
+    }
   };
 
   const handleCancel = () => {
@@ -165,13 +185,14 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
         return <AppstoreOutlined style={{ marginRight: 8, color: '#757575' }} />;
     }
   };
+
   // Columns with action buttons and category icons
   const columns: ColumnsType<Product> = [
     {
       title: 'Product Name',
       dataIndex: 'product_name',
       key: 'product_name',
-      width: 200,
+      // Removed fixed width for responsiveness
       sorter: (a, b) => a.product_name.localeCompare(b.product_name),
       render: (text) => <span className="table-text">{text}</span>,
     },
@@ -179,7 +200,7 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
-      width: 150,
+      // Removed fixed width for responsiveness
       filters: [
         { text: 'Electronics', value: 'Electronics' },
         { text: 'Clothing', value: 'Clothing' },
@@ -198,79 +219,84 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
       title: 'Discounted Price',
       dataIndex: 'discounted_price',
       key: 'discounted_price',
-      width: 150,
+      sorter: (a, b) => parseFloat(a.discounted_price || '0') - parseFloat(b.discounted_price || '0'),
       render: (value) => (
         <span className="table-text">
-          {value !== null ? `₹${value}` : 'N/A'}
+          {value !== '' ? `₹${value}` : 'N/A'}
         </span>
       ),
-      sorter: (a, b) => (a.discounted_price || 0) - (b.discounted_price || 0),
     },
     {
       title: 'Actual Price',
       dataIndex: 'actual_price',
       key: 'actual_price',
-      width: 150,
+      sorter: (a, b) => parseFloat(a.actual_price || '0') - parseFloat(b.actual_price || '0'),
       render: (value) => (
         <span className="table-text">
-          {value !== null ? `₹${value}` : 'N/A'}
+          {value !== '' ? `₹${value}` : 'N/A'}
         </span>
       ),
-      sorter: (a, b) => (a.actual_price || 0) - (b.actual_price || 0),
     },
     {
       title: 'Discount %',
       dataIndex: 'discount_percentage',
       key: 'discount_percentage',
-      width: 130,
+      sorter: (a, b) =>
+        parseFloat(a.discount_percentage || '0') - parseFloat(b.discount_percentage || '0'),
       render: (value) => (
         <span className="table-text">
-          {value !== null ? `${value}%` : 'N/A'}
+          {value !== '' ? `${value}%` : 'N/A'}
         </span>
       ),
-      sorter: (a, b) =>
-        (a.discount_percentage || 0) - (b.discount_percentage || 0),
     },
     {
       title: 'Rating',
       dataIndex: 'rating',
       key: 'rating',
-      width: 100,
+      sorter: (a, b) => (a.rating || 0) - (b.rating || 0),
       render: (value) => (
         <span className="table-text">{value !== null ? value : 'N/A'}</span>
       ),
-      sorter: (a, b) => (a.rating || 0) - (b.rating || 0),
     },
     {
       title: 'Rating Count',
       dataIndex: 'rating_count',
       key: 'rating_count',
-      width: 130,
+      sorter: (a, b) => parseInt(a.rating_count || '0') - parseInt(b.rating_count || '0'),
       render: (value) => (
-        <span className="table-text">{value !== null ? value : 'N/A'}</span>
+        <span className="table-text">{value !== '' ? value : 'N/A'}</span>
       ),
-      sorter: (a, b) => (a.rating_count || 0) - (b.rating_count || 0),
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 150,
+      align: 'center',
+      fixed: 'right',
       render: (_, record) => (
         <>
-          <Button type="link" onClick={() => handleEdit(record)}>
-            Edit
-          </Button>
-          <Popconfirm
-            title="Are you sure to delete this product?"
-            onConfirm={() => handleDelete(record.key)}
-            okText="Yes"
-            cancelText="No"
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="link" danger>
-              Delete
-            </Button>
-          </Popconfirm>
+          <Tooltip title="Edit">
+            <Button
+              type="text"
+              icon={<EditOutlined style={{ color: '#1E88E5' }} />}
+              onClick={() => handleEdit(record)}
+              aria-label={`Edit ${record.product_name}`}
+            />
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Popconfirm
+              title="Are you sure to delete this product?"
+              onConfirm={() => handleDelete(record.key)}
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                type="text"
+                icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />}
+                aria-label={`Delete ${record.product_name}`}
+              />
+            </Popconfirm>
+          </Tooltip>
         </>
       ),
     },
@@ -278,17 +304,22 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
 
   return (
     <div className="table-container">
+      {/* Optional: Add a search bar or filters here for enhanced intuitiveness */}
       <Table<Product>
         columns={columns}
         dataSource={data}
         loading={loading}
         pagination={{
-          pageSizeOptions: ['10', '25', '50'],
+          pageSizeOptions: ['10', '25', '50', '100'],
           showSizeChanger: true,
           defaultPageSize: 10,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
         }}
-        scroll={{ y: 500 }}
+        scroll={{ y: 500 }} // Removed horizontal scroll by not setting x
         rowClassName="table-row"
+        bordered
+        size="middle"
+        // Removed 'x: max-content' to prevent horizontal scrolling
       />
       {/* Modal for Add/Edit */}
       <Modal
@@ -297,55 +328,98 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
         onOk={handleOk}
         onCancel={handleCancel}
         okText={isEditMode ? 'Update' : 'Add'}
+        okButtonProps={{
+          type: 'primary',
+          disabled: loading,
+        }}
+        cancelButtonProps={{
+          disabled: loading,
+        }}
+        destroyOnClose
+        centered
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" className="modal-form">
           <Form.Item
             name="product_name"
             label="Product Name"
             rules={[{ required: true, message: 'Please input the product name!' }]}
           >
-            <Input />
+            <Input placeholder="Enter product name" />
           </Form.Item>
           <Form.Item
             name="category"
             label="Category"
             rules={[{ required: true, message: 'Please input the category!' }]}
           >
-            <Input />
+            <Input placeholder="Enter category (e.g., Electronics | Mobile Phones)" />
           </Form.Item>
           <Form.Item
             name="discounted_price"
             label="Discounted Price (INR)"
             rules={[
               { required: true, message: 'Please input the discounted price!' },
+              { pattern: /^[0-9]+(\.[0-9]{1,2})?$/, message: 'Please enter a valid price!' },
             ]}
           >
-            <InputNumber style={{ width: '100%' }} min={0} />
+            <Input placeholder="e.g., 29999" />
           </Form.Item>
           <Form.Item
             name="actual_price"
             label="Actual Price (INR)"
-            rules={[{ required: true, message: 'Please input the actual price!' }]}
+            rules={[
+              { required: true, message: 'Please input the actual price!' },
+              { pattern: /^[0-9]+(\.[0-9]{1,2})?$/, message: 'Please enter a valid price!' },
+            ]}
           >
-            <InputNumber style={{ width: '100%' }} min={0} />
+            <Input placeholder="e.g., 34999" />
           </Form.Item>
           <Form.Item
             name="discount_percentage"
             label="Discount Percentage"
             rules={[
               { required: true, message: 'Please input the discount percentage!' },
+              {
+                type: 'string',
+                pattern: /^(\d{1,2}(\.\d{1,2})?)$/,
+                message: 'Please enter a valid discount percentage!',
+              },
             ]}
           >
-            <InputNumber style={{ width: '100%' }} min={0} max={100} />
+            <Input placeholder="e.g., 14" />
           </Form.Item>
-          <Form.Item name="rating" label="Rating">
-            <InputNumber style={{ width: '100%' }} min={0} max={5} step={0.1} />
+          <Form.Item
+            name="rating"
+            label="Rating"
+            rules={[
+              { required: true, message: 'Please input the rating!' },
+              {
+                type: 'number',
+                min: 0,
+                max: 5,
+                message: 'Rating must be between 0 and 5',
+              },
+            ]}
+          >
+            <InputNumber style={{ width: '100%' }} min={0} max={5} step={1} />
           </Form.Item>
-          <Form.Item name="rating_count" label="Rating Count">
-            <InputNumber style={{ width: '100%' }} min={0} />
+          <Form.Item
+            name="rating_count"
+            label="Rating Count"
+            rules={[
+              { required: true, message: 'Please input the rating count!' },
+              { pattern: /^[0-9]+$/, message: 'Please enter a valid rating count!' },
+            ]}
+          >
+            <Input placeholder="e.g., 150" />
           </Form.Item>
           <Form.Item name="about_product" label="About Product">
-            <Input.TextArea />
+            <Input.TextArea placeholder="Provide a brief description of the product" />
+          </Form.Item>
+          <Form.Item name="img_link" label="Image Link">
+            <Input placeholder="http://example.com/image.jpg" />
+          </Form.Item>
+          <Form.Item name="product_link" label="Product Link">
+            <Input placeholder="http://example.com/product" />
           </Form.Item>
         </Form>
       </Modal>

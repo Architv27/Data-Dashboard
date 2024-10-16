@@ -57,11 +57,13 @@ const FloatingButton = styled(Button)`
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
   background-color: #1D3557;
   border-color: #1D3557;
+  color: #fff; /* Ensure the icon color is visible */
 
   &:hover,
   &:focus {
     background-color: #457B9D;
     border-color: #457B9D;
+    color: #fff; /* Maintain icon color on hover */
   }
 `;
 
@@ -71,14 +73,14 @@ const App: React.FC = () => {
   return (
     <>
       <GlobalStyle />
-      <Layout style={{ minHeight: '100vh' }}>
+      <Layout style={{ minHeight: '100vh', position: 'relative' }}>
         {/* Header */}
         <Header>
           <div className="logo">
             {/* Replace with your company logo */}
             {/* <img src="/path-to-logo.png" alt="Company Logo" style={{ height: '40px' }} /> */}
           </div>
-          <Title level={3}>Fintech Product Dashboard</Title>
+          <Title level={3} style={{ marginLeft: '10px' }}>Fintech Product Dashboard</Title>
         </Header>
 
         {/* Content */}
@@ -86,19 +88,19 @@ const App: React.FC = () => {
           <Chart />
           <AnalyticsDashboard />
           <DataTable ref={dataTableRef} />
-
-          {/* Floating Action Button */}
-          <FloatingButton
-            type="primary"
-            shape="circle"
-            icon={<PlusOutlined />}
-            size="large"
-            onClick={() => {
-              dataTableRef.current?.handleAdd();
-            }}
-            aria-label="Add New Product"
-          />
         </Content>
+
+        {/* Floating Action Button */}
+        <FloatingButton
+          type="primary"
+          shape="circle"
+          icon={<PlusOutlined />}
+          size="large"
+          onClick={() => {
+            dataTableRef.current?.handleAdd();
+          }}
+          aria-label="Add New Product"
+        />
 
         {/* Footer */}
         <Footer>
