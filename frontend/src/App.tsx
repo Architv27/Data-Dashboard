@@ -5,6 +5,7 @@ import { Layout } from 'antd';
 import { createGlobalStyle } from 'styled-components';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import DataTable from './components/DataTable';
+import UserReviews from './components/UserReviews';
 import './App.css';
 
 const { Header, Content, Footer } = Layout;

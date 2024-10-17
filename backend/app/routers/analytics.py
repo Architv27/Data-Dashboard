@@ -311,9 +311,13 @@ async def update_helpful_count(review_id: str = Path(...), change: int = Body(..
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/reviews", response_model=List[Review])
-async def get_random_reviews():
+async def get_reviews(
+    min_rating: Optional[float] = Query(None, ge=0.0, le=5.0, description="Minimum rating"),
+    max_rating: Optional[float] = Query(None, ge=0.0, le=5.0, description="Maximum rating"),
+    limit: Optional[int] = Query(100, ge=1, description="Number of reviews to return")
+):
     """
-    Returns 10-15 random reviews with a balance of good, neutral, and bad reviews.
+    Returns reviews, optionally filtered by rating.
     """
     try:
         # Fetch products that have reviews
@@ -332,60 +336,39 @@ async def get_random_reviews():
         if not all_reviews:
             return []
 
-        # Categorize reviews
-        good_reviews = [r for r in all_reviews if r.get("rating") is not None and r["rating"] >= 4]
-        neutral_reviews = [r for r in all_reviews if r.get("rating") == 3]
-        bad_reviews = [r for r in all_reviews if r.get("rating") is not None and r["rating"] <= 2]
+        # Convert to DataFrame
+        df = pd.DataFrame(all_reviews)
 
-        # Shuffle the lists
-        random.shuffle(good_reviews)
-        random.shuffle(neutral_reviews)
-        random.shuffle(bad_reviews)
+        # Clean and convert 'rating' to float
+        df['rating'] = df['rating'].apply(safe_float_conversion)
 
-        # Determine the number of reviews to select from each category
-        total_reviews_needed = random.randint(10, 15)
-        per_category = total_reviews_needed // 3
+        # Drop rows with missing 'rating'
+        df = df.dropna(subset=['rating'])
 
-        # Select reviews
-        selected_good_reviews = good_reviews[:per_category]
-        selected_neutral_reviews = neutral_reviews[:per_category]
-        selected_bad_reviews = bad_reviews[:per_category]
+        # Apply rating filters
+        if min_rating is not None:
+            df = df[df['rating'] >= min_rating]
+        if max_rating is not None:
+            df = df[df['rating'] <= max_rating]
 
-        # If we need more reviews, fill up from the remaining reviews
-        remaining_needed = total_reviews_needed - (
-            len(selected_good_reviews) + len(selected_neutral_reviews) + len(selected_bad_reviews)
-        )
-        remaining_reviews = (
-            good_reviews[per_category:]
-            + neutral_reviews[per_category:]
-            + bad_reviews[per_category:]
-        )
-        random.shuffle(remaining_reviews)
-        selected_remaining_reviews = remaining_reviews[:remaining_needed]
+        # Shuffle the DataFrame
+        df = df.sample(frac=1).reset_index(drop=True)
 
-        # Combine all selected reviews
-        selected_reviews = (
-            selected_good_reviews
-            + selected_neutral_reviews
-            + selected_bad_reviews
-            + selected_remaining_reviews
-        )
+        # Limit the number of reviews returned
+        df = df.head(limit)
 
-        # Shuffle the final list
-        random.shuffle(selected_reviews)
+        # Convert DataFrame back to list of dictionaries
+        reviews = df.to_dict(orient='records')
 
-        # Limit to total_reviews_needed in case we have extra
-        selected_reviews = selected_reviews[:total_reviews_needed]
-
-        # Convert to Review models
-        reviews = [Review(**review) for review in selected_reviews]
+        # Convert to list of Review models
+        reviews = [Review(**review) for review in reviews]
 
         return reviews
 
     except Exception as e:
         logger.error(f"Error fetching reviews: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    
+        
 @router.get("/sentiment_analysis")
 async def sentiment_analysis():
     """
@@ -754,10 +737,13 @@ async def sentiment_wordcloud():
 async def price_discount_analysis():
     """
     Analyzes how discounts are applied to products in different price ranges.
-    Calculates the average discount percentage for predefined actual price ranges.
+    - Calculates average and median discount percentage per price range.
+    - Counts the number of products per price range.
+    - Calculates the correlation between actual price and discount percentage.
+    - Provides overall discount statistics.
 
     Returns:
-        list of dict: Each dict contains price_range and average_discount_percentage.
+        dict: Contains per_price_range_stats and overall_stats.
     """
     products = []
     try:
@@ -788,23 +774,39 @@ async def price_discount_analysis():
         raise HTTPException(status_code=500, detail="No valid data available.")
 
     # Define price ranges
-    bins = [0, 5000, 10000, 15000, 20000, 25000, 30000, 35000]
-    labels = ['0-5k', '5k-10k', '10k-15k', '15k-20k', '20k-25k', '25k-30k', '30k-35k']
+    bins = [0, 5000, 10000, 15000, 20000, 25000, 30000, df['actual_price'].max()]
+    labels = ['0-5k', '5k-10k', '10k-15k', '15k-20k', '20k-25k', '25k-30k', f'30k-{int(df["actual_price"].max())}k']
     df['price_range'] = pd.cut(df['actual_price'], bins=bins, labels=labels, include_lowest=True)
 
-    # Calculate average discount percentage per price range with observed=True to suppress FutureWarning
+    # Calculate statistics per price range
     try:
-        price_discount = df.groupby('price_range', observed=True)['discount_percentage'].mean().reset_index()
+        price_discount_stats = df.groupby('price_range', observed=True).agg({
+            'discount_percentage': ['mean', 'median', 'std'],
+            'actual_price': 'count'
+        }).reset_index()
+        price_discount_stats.columns = ['price_range', 'average_discount_percentage', 'median_discount_percentage', 'std_discount_percentage', 'product_count']
     except Exception as e:
         logger.error(f"Error during groupby operation in price_discount_analysis: {e}")
         raise HTTPException(status_code=500, detail="Failed to perform groupby operation.")
 
-    # Rename columns for clarity
-    price_discount = price_discount.rename(columns={
-        'discount_percentage': 'average_discount_percentage'
-    })
+    # Calculate overall discount statistics
+    overall_stats = {
+        'average_discount_percentage': df['discount_percentage'].mean(),
+        'median_discount_percentage': df['discount_percentage'].median(),
+        'min_discount_percentage': df['discount_percentage'].min(),
+        'max_discount_percentage': df['discount_percentage'].max(),
+        'std_discount_percentage': df['discount_percentage'].std(),
+        'total_products': len(df)
+    }
 
-    return price_discount.to_dict(orient='records')
+    # Calculate correlation between actual price and discount percentage
+    correlation = df[['actual_price', 'discount_percentage']].corr().to_dict()
+
+    return {
+        "per_price_range_stats": price_discount_stats.to_dict(orient='records'),
+        "overall_stats": overall_stats,
+        "price_discount_correlation": correlation
+    }
 
 
 @router.get("/categories")
@@ -828,19 +830,25 @@ async def get_categories():
 async def top_products(
     categories: Optional[List[str]] = Query(None, description="Filter by product categories"),
     min_rating: Optional[float] = Query(None, ge=0.0, le=5.0, description="Minimum rating"),
-    max_rating: Optional[float] = Query(None, ge=0.0, le=5.0, description="Maximum rating")
+    max_rating: Optional[float] = Query(None, ge=0.0, le=5.0, description="Maximum rating"),
+    sort_by: Optional[str] = Query('popularity_score', description="Sort by 'popularity_score', 'total_sales', or 'profit'"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Number of products per page")
 ):
     """
-    Determines the top 10 products based on popularity, defined by a combination of rating and review count.
-    Supports filtering by categories and rating range.
+    Determines the top products based on various metrics.
+    Supports filtering by categories and rating range, sorting, and pagination.
 
     Args:
         categories (List[str], optional): List of categories to filter products.
         min_rating (float, optional): Minimum rating to filter products.
         max_rating (float, optional): Maximum rating to filter products.
+        sort_by (str, optional): Metric to sort by ('popularity_score', 'total_sales', 'profit').
+        page (int, optional): Page number for pagination.
+        page_size (int, optional): Number of products per page.
 
     Returns:
-        list of dict: Each dict contains product_name, rating, rating_count, and popularity_score.
+        dict: Contains total_count and list of products with detailed metrics.
     """
     query = {}
 
@@ -853,14 +861,6 @@ async def top_products(
         query['category'] = {'$regex': regex_pattern, '$options': 'i'}  # 'i' for case-insensitive
         logger.info(f"Applied category regex filter: {regex_pattern}")
 
-    # Apply rating range filter if provided
-    if min_rating is not None and max_rating is not None:
-        query['rating'] = {'$gte': min_rating, '$lte': max_rating}
-    elif min_rating is not None:
-        query['rating'] = {'$gte': min_rating}
-    elif max_rating is not None:
-        query['rating'] = {'$lte': max_rating}
-
     logger.info(f"Query: {query}")
 
     # Fetch filtered products from MongoDB
@@ -870,39 +870,78 @@ async def top_products(
             # Clean numeric fields
             product['rating'] = safe_float_conversion(product.get('rating'))
             product['rating_count'] = clean_number(product.get('rating_count'))
+            product['discount_percentage'] = clean_number(product.get('discount_percentage'))
+            product['actual_price'] = clean_number(product.get('actual_price'))
+            product['discounted_price'] = clean_number(product.get('discounted_price'))
+            # Estimate sales and profit
+            if product['discounted_price'] is not None and product['rating_count'] is not None:
+                product['total_sales'] = product['discounted_price'] * product['rating_count']
+                # Assume cost price is 70% of actual price
+                cost_price = product['actual_price'] * 0.7 if product['actual_price'] else 0
+                product['profit'] = (product['discounted_price'] - cost_price) * product['rating_count']
+            else:
+                product['total_sales'] = 0
+                product['profit'] = 0
             products.append(product)
         logger.info(f"Fetched {len(products)} products from MongoDB.")
     except Exception as e:
         logger.error(f"Error fetching products from MongoDB: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch products from the database.")
 
+    # Filter products by rating range after converting 'rating' to float
+    if min_rating is not None:
+        products = [p for p in products if p['rating'] is not None and p['rating'] >= min_rating]
+    if max_rating is not None:
+        products = [p for p in products if p['rating'] is not None and p['rating'] <= max_rating]
+
+    logger.info(f"Products after rating filter: {len(products)}")
+
     # Convert to DataFrame
     df = pd.DataFrame(products)
     logger.info(f"DataFrame created with {len(df)} records.")
 
     # Check required columns
-    required_columns = ['product_name', 'rating', 'rating_count']
+    required_columns = ['product_name', 'rating', 'rating_count', 'total_sales', 'profit']
     for col in required_columns:
         if col not in df.columns:
             raise HTTPException(status_code=500, detail=f"'{col}' data not found.")
 
-    # Drop rows with missing product_name, rating, or rating_count
+    # Drop rows with missing required data
     df = df.dropna(subset=required_columns)
     logger.info(f"DataFrame after dropping NaNs: {len(df)} records.")
 
     if df.empty:
         logger.info("No valid data available after applying filters.")
-        return []  # Return empty list instead of raising an error
+        return {"total_count": 0, "products": []}
 
     # Define popularity based on rating and rating_count
     df['popularity_score'] = df['rating'] * df['rating_count']
 
-    # Sort products by popularity_score in descending order and select top 10
-    top_products_df = df.sort_values(by='popularity_score', ascending=False).head(10)
-    logger.info(f"Selected top {len(top_products_df)} products based on popularity.")
+    # Sort products based on sort_by parameter
+    if sort_by not in ['popularity_score', 'total_sales', 'profit']:
+        sort_by = 'popularity_score'
+    df = df.sort_values(by=sort_by, ascending=False)
+
+    # Pagination
+    total_count = len(df)
+    start = (page - 1) * page_size
+    end = start + page_size
+    df = df.iloc[start:end]
 
     # Select relevant fields
-    top_products = top_products_df[['product_name', 'rating', 'rating_count', 'popularity_score']]
+    top_products = df[[
+        'product_id',
+        'product_name',
+        'category',
+        'actual_price',
+        'discounted_price',
+        'discount_percentage',
+        'rating',
+        'rating_count',
+        'popularity_score',
+        'total_sales',
+        'profit'
+    ]]
 
-    logger.info("Returning top products.")
-    return top_products.to_dict(orient='records')
+    logger.info("Returning top products with additional metrics.")
+    return {"total_count": total_count, "products": top_products.to_dict(orient='records')}

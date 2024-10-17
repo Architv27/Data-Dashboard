@@ -12,14 +12,28 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
-import { Spin, Alert, Select, Slider, Row, Col, Button } from 'antd';
-import { TopProductsResponse, TopProduct } from '../Types/TopProductsResponse'; // Corrected import path
+import { Spin, Alert, Select, Slider, Row, Col, Button, Pagination } from 'antd';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 
+type TopProduct = {
+  product_id: string;
+  product_name: string;
+  category: string;
+  actual_price: number;
+  discounted_price: number;
+  discount_percentage: number;
+  rating: number;
+  rating_count: number;
+  popularity_score: number;
+  total_sales: number;
+  profit: number;
+};
+
 const TopProductsChart: React.FC = () => {
-  const [data, setData] = useState<TopProductsResponse>([]);
+  const [data, setData] = useState<TopProduct[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -37,6 +51,11 @@ const TopProductsChart: React.FC = () => {
     'Toys&Games',
   ]);
   const [ratingRange, setRatingRange] = useState<[number, number]>([0, 5]);
+  const [sortBy, setSortBy] = useState<string>('popularity_score');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 10;
 
   // State to manage filter panel visibility
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -45,13 +64,17 @@ const TopProductsChart: React.FC = () => {
     // Fetch top products based on current filters
     fetchTopProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories, ratingRange]);
+  }, [categories, ratingRange, sortBy, currentPage]);
 
   const fetchTopProducts = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params: any = {};
+      const params: any = {
+        page: currentPage,
+        page_size: pageSize,
+        sort_by: sortBy,
+      };
       if (categories.length > 0) {
         params.categories = categories;
       }
@@ -60,8 +83,9 @@ const TopProductsChart: React.FC = () => {
         params.max_rating = ratingRange[1];
       }
 
-      const response = await axios.get<TopProductsResponse>('http://localhost:8000/analytics/top_products', { params });
-      setData(response.data);
+      const response = await axios.get('http://localhost:8000/analytics/top_products', { params });
+      setData(response.data.products);
+      setTotalCount(response.data.total_count);
     } catch (err) {
       console.error(err);
       setError('Failed to fetch top products data.');
@@ -84,12 +108,24 @@ const TopProductsChart: React.FC = () => {
   // Handle filter changes
   const handleCategoryChange = (value: string[]) => {
     setCategories(value);
+    setCurrentPage(1);
   };
 
   const handleRatingChange = (value: number | number[]) => {
     if (Array.isArray(value) && value.length === 2) {
       setRatingRange([value[0], value[1]]);
+      setCurrentPage(1);
     }
+  };
+
+  const handleSortByChange = (value: string) => {
+    setSortBy(value);
+    setCurrentPage(1);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   // Toggle filter panel visibility
@@ -101,6 +137,8 @@ const TopProductsChart: React.FC = () => {
   const resetFilters = () => {
     setCategories([]);
     setRatingRange([0, 5]);
+    setSortBy('popularity_score');
+    setCurrentPage(1);
   };
 
   return (
@@ -116,7 +154,7 @@ const TopProductsChart: React.FC = () => {
     >
       <Row justify="space-between" align="middle" style={{ marginBottom: '20px' }}>
         <Col>
-          <h3>Top 10 Products by Popularity</h3>
+          <h3>Top Products</h3>
         </Col>
         <Col>
           <Button type="primary" onClick={toggleFilters}>
@@ -129,7 +167,7 @@ const TopProductsChart: React.FC = () => {
         <div style={{ marginBottom: '20px' }}>
           <Row gutter={[16, 16]}>
             {/* Category Filter */}
-            <Col xs={24} sm={12} md={8}>
+            <Col xs={24} sm={12} md={6}>
               <label><strong>Category:</strong></label>
               <Select
                 mode="multiple"
@@ -148,7 +186,7 @@ const TopProductsChart: React.FC = () => {
             </Col>
 
             {/* Rating Range Filter */}
-            <Col xs={24} sm={12} md={8}>
+            <Col xs={24} sm={12} md={6}>
               <label><strong>Rating Range:</strong></label>
               <Slider
                 range
@@ -168,8 +206,22 @@ const TopProductsChart: React.FC = () => {
               />
             </Col>
 
+            {/* Sort By */}
+            <Col xs={24} sm={12} md={6}>
+              <label><strong>Sort By:</strong></label>
+              <Select
+                value={sortBy}
+                onChange={handleSortByChange}
+                style={{ width: '100%' }}
+              >
+                <Option value="popularity_score">Popularity Score</Option>
+                <Option value="total_sales">Total Sales</Option>
+                <Option value="profit">Profit</Option>
+              </Select>
+            </Col>
+
             {/* Reset Filters Button */}
-            <Col xs={24} sm={12} md={8} style={{ display: 'flex', alignItems: 'end' }}>
+            <Col xs={24} sm={12} md={6} style={{ display: 'flex', alignItems: 'end' }}>
               <Button onClick={resetFilters} type="default" style={{ width: '100%' }}>
                 Reset Filters
               </Button>
@@ -187,28 +239,50 @@ const TopProductsChart: React.FC = () => {
           <Alert message="Error" description={error} type="error" showIcon />
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={500}>
-          <BarChart
-            data={processedData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 150 }} // Increased bottom margin for rotated labels
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="truncated_name" // Use truncated names for labels
-              tick={{ fontSize: 12 }}
-              tickLine={false}
-              interval={0} // Display all labels
-              angle={-45} // Rotate labels by -45 degrees
-              textAnchor="end" // Align text to the end to match rotation
-              height={150} // Increase height to accommodate rotated labels
+        <>
+          <ResponsiveContainer width="100%" height={500}>
+            <BarChart
+              data={processedData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 150 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="truncated_name"
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+                interval={0}
+                angle={-45}
+                textAnchor="end"
+                height={150}
+              />
+              <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+              <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff' }}
+                formatter={(value: any, name: string, props: any) => {
+                  if (name === 'Product Name') return [props.payload.product_name, name];
+                  return [value, name];
+                }}
+                labelFormatter={() => ''}
+              />
+              <Legend />
+              <Bar yAxisId="left" dataKey="rating" fill="#8884d8" name="Rating" />
+              <Bar yAxisId="left" dataKey="rating_count" fill="#83a6ed" name="Review Count" />
+              <Bar yAxisId="right" dataKey="total_sales" fill="#82ca9d" name="Total Sales" />
+              <Bar yAxisId="right" dataKey="profit" fill="#8dd1e1" name="Profit" />
+            </BarChart>
+          </ResponsiveContainer>
+          {/* Pagination */}
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={totalCount}
+              onChange={handlePageChange}
+              showSizeChanger={false}
             />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="rating" fill="#82ca9d" name="Rating" />
-            <Bar dataKey="rating_count" fill="#8884d8" name="Review Count" />
-          </BarChart>
-        </ResponsiveContainer>
+          </div>
+        </>
       )}
     </div>
   );

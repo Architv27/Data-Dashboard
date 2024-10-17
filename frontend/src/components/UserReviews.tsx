@@ -1,13 +1,14 @@
 // src/components/UserReviews.tsx
 
 import React, { useEffect, useState } from 'react';
-import { Typography, Spin, Alert, Rate, message } from 'antd';
+import { Typography, Spin, Alert, Rate, message, Select, Avatar, Button, Input } from 'antd';
 import axios from 'axios';
 import InfiniteMovingCards from './InfiniteMovingCards';
-import { LikeOutlined, DislikeOutlined } from '@ant-design/icons';
+import { LikeOutlined, DislikeOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
 import './UserReviews.css';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 type Review = {
   review_id: string;
@@ -15,6 +16,7 @@ type Review = {
   product_name?: string;
   user_id: string;
   user_name?: string;
+  user_avatar?: string;
   review_title: string;
   review_content: string;
   rating?: number;
@@ -24,14 +26,18 @@ type Review = {
 
 const UserReviews: React.FC = () => {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
         const response = await axios.get<Review[]>('http://localhost:8000/analytics/reviews');
         setReviews(response.data);
+        setFilteredReviews(response.data);
       } catch (err) {
         setError('Failed to fetch reviews. Please try again later.');
       } finally {
@@ -44,8 +50,15 @@ const UserReviews: React.FC = () => {
 
   const handleHelpful = async (review_id: string, change: number) => {
     try {
-      await axios.post(`http://localhost:8000/analytics/reviews/${review_id}/helpful`, change);
+      await axios.post(`http://localhost:8000/analytics/reviews/${review_id}/helpful`, { change });
       setReviews((prevReviews) =>
+        prevReviews.map((review) =>
+          review.review_id === review_id
+            ? { ...review, helpful_count: (review.helpful_count || 0) + change }
+            : review
+        )
+      );
+      setFilteredReviews((prevReviews) =>
         prevReviews.map((review) =>
           review.review_id === review_id
             ? { ...review, helpful_count: (review.helpful_count || 0) + change }
@@ -55,6 +68,37 @@ const UserReviews: React.FC = () => {
     } catch (err) {
       message.error('Failed to update helpful count. Please try again later.');
     }
+  };
+
+  const handleFilterChange = (value: number | null) => {
+    setFilterRating(value);
+    filterReviews(value, searchTerm);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+    filterReviews(filterRating, term);
+  };
+
+  const filterReviews = (rating: number | null, term: string) => {
+    let filtered = [...reviews];
+    if (rating !== null) {
+      filtered = filtered.filter(
+        (review) =>
+          review.rating !== undefined &&
+          review.rating >= rating &&
+          review.rating < rating + 1
+      );
+    }
+    if (term.trim() !== '') {
+      filtered = filtered.filter(
+        (review) =>
+          review.review_title.toLowerCase().includes(term.toLowerCase()) ||
+          review.review_content.toLowerCase().includes(term.toLowerCase())
+      );
+    }
+    setFilteredReviews(filtered);
   };
 
   if (loading) {
@@ -75,17 +119,44 @@ const UserReviews: React.FC = () => {
 
   return (
     <div className="reviews-container">
-      <Title level={4}>User Reviews</Title>
+      <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
+        User Reviews
+      </Title>
+      {/* Filter and Search */}
+      <div className="filters">
+        <Select
+          allowClear
+          placeholder="Filter by Rating"
+          style={{ width: 200, marginRight: 20 }}
+          onChange={handleFilterChange}
+        >
+          <Option value={5}>5 Stars</Option>
+          <Option value={4}>4 Stars</Option>
+          <Option value={3}>3 Stars</Option>
+          <Option value={2}>2 Stars</Option>
+          <Option value={1}>1 Star</Option>
+        </Select>
+        <Input
+          placeholder="Search Reviews"
+          prefix={<SearchOutlined />}
+          style={{ width: 300 }}
+          onChange={handleSearchChange}
+        />
+      </div>
+
       <InfiniteMovingCards
-        items={reviews}
+        items={filteredReviews}
         speed="normal"
         pauseOnHover={true}
         renderItem={(item: Review, index: number) => (
-          <div className="review-card">
+          <div className="review-card" key={index}>
             <div className="user-info">
-              {/* Replace with actual user avatar if available */}
-              <img className="user-avatar" src="/default-avatar.png" alt="User Avatar" />
-              <div>
+              <Avatar
+                size={64}
+                src={item.user_avatar || '/default-avatar.png'}
+                icon={<UserOutlined />}
+              />
+              <div className="user-details">
                 <Text strong>{item.user_name || `User ID: ${item.user_id}`}</Text>
                 <br />
                 <Text type="secondary">
@@ -105,12 +176,18 @@ const UserReviews: React.FC = () => {
             <div className="helpful-count">
               <Text type="secondary">Helpful Count: {item.helpful_count || 0}</Text>
               <div className="thumbs-icons">
-                <button onClick={() => handleHelpful(item.review_id, 1)} className="thumb-button">
-                  <LikeOutlined />
-                </button>
-                <button onClick={() => handleHelpful(item.review_id, -1)} className="thumb-button">
-                  <DislikeOutlined />
-                </button>
+                <Button
+                  onClick={() => handleHelpful(item.review_id, 1)}
+                  className="thumb-button"
+                  type="text"
+                  icon={<LikeOutlined />}
+                />
+                <Button
+                  onClick={() => handleHelpful(item.review_id, -1)}
+                  className="thumb-button"
+                  type="text"
+                  icon={<DislikeOutlined />}
+                />
               </div>
             </div>
           </div>

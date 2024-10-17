@@ -2,20 +2,25 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Spin, Alert } from 'antd';
-import { PriceDiscountAnalysisResponse, PriceDiscountAnalysisItem } from '../Types/PriceDiscountAnalysisResponse';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Spin, Alert, Row, Col, Statistic } from 'antd';
+import { PriceDiscountAnalysisResponse } from '../Types/PriceDiscountAnalysisResponse';
 
 const PriceDiscountAnalysisChart: React.FC = () => {
-  const [data, setData] = useState<PriceDiscountAnalysisResponse>([]);
+  const [data, setData] = useState<any[]>([]);
+  const [overallStats, setOverallStats] = useState<any>(null);
+  const [correlation, setCorrelation] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     axios
-      .get<PriceDiscountAnalysisResponse>('http://localhost:8000/analytics/price_discount_analysis')
+      .get('http://localhost:8000/analytics/price_discount_analysis')
       .then((response) => {
-        setData(response.data);
+        setData(response.data.per_price_range_stats);
+        setOverallStats(response.data.overall_stats);
+        const corr = response.data.price_discount_correlation.actual_price.discount_percentage;
+        setCorrelation(corr);
         setLoading(false);
       })
       .catch((error) => {
@@ -45,7 +50,6 @@ const PriceDiscountAnalysisChart: React.FC = () => {
     <div
       style={{
         width: '100%',
-        height: 400,
         backgroundColor: '#fff',
         padding: '20px',
         borderRadius: '6px',
@@ -53,16 +57,47 @@ const PriceDiscountAnalysisChart: React.FC = () => {
         marginBottom: '20px',
       }}
     >
-      <h3>Average Discount Percentage by Price Range</h3>
-      <ResponsiveContainer>
-        <ScatterChart>
-          <CartesianGrid />
-          <XAxis type="category" dataKey="price_range" name="Price Range" />
-          <YAxis type="number" dataKey="average_discount_percentage" name="Average Discount (%)" />
-          <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+      <h3>Price and Discount Analysis</h3>
+      <Row gutter={16} style={{ marginBottom: '20px' }}>
+        <Col span={8}>
+          <Statistic
+            title="Correlation (Price vs Discount)"
+            value={correlation?.toFixed(2)}
+          />
+        </Col>
+        <Col span={8}>
+          <Statistic
+            title="Average Discount (%)"
+            value={overallStats.average_discount_percentage.toFixed(2)}
+          />
+        </Col>
+        <Col span={8}>
+          <Statistic
+            title="Median Discount (%)"
+            value={overallStats.median_discount_percentage.toFixed(2)}
+          />
+        </Col>
+      </Row>
+      <ResponsiveContainer width="100%" height={500}>
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="price_range" />
+          <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            stroke="#82ca9d"
+            tickFormatter={(value) => `${value}`}
+          />
+          <Tooltip />
           <Legend />
-          <Scatter name="Discount" data={data} fill="#8884d8" />
-        </ScatterChart>
+          <Bar yAxisId="left" dataKey="average_discount_percentage" fill="#8884d8" name="Avg Discount (%)" />
+          <Bar yAxisId="left" dataKey="median_discount_percentage" fill="#83a6ed" name="Median Discount (%)" />
+          <Bar yAxisId="right" dataKey="product_count" fill="#82ca9d" name="Product Count" />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
