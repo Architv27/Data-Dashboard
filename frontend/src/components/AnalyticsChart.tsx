@@ -28,7 +28,7 @@ import {
   Line,
   Brush,
 } from 'recharts';
-import './AnalyticsChart.css'; // Import CSS for styling
+import './AnalyticsChart.css';
 
 interface CategoryStat {
   total_products: number;
@@ -158,7 +158,7 @@ const AnalyticsChart: React.FC = () => {
     },
   ];
 
-  // Columns for Top Selling Products Table (Optional)
+  // Columns for Top Selling Products Table
   const topSellingColumns = [
     {
       title: 'Product ID',
@@ -196,7 +196,6 @@ const AnalyticsChart: React.FC = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Key Performance Indicators */}
       <Row gutter={16} style={{ marginBottom: '20px' }}>
         <Col xs={24} sm={12} md={6}>
           <Card className="card">
@@ -234,8 +233,6 @@ const AnalyticsChart: React.FC = () => {
           </Card>
         </Col>
       </Row>
-
-      {/* Sales Revenue Over Time */}
       {data.sales_over_time && data.sales_over_time.length > 0 && (
         <Card
           title="Sales Revenue Over Time"

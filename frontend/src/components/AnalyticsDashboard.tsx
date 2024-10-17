@@ -7,8 +7,6 @@ import AnalyticsChart from './AnalyticsChart';
 import SentimentDistributionChart from './SentimentDistributionChart';
 import PriceDiscountAnalysisChart from './PriceDiscountanalysis';
 import TopProductsChart from './TopProductCharts';
-import SalesTrendChart from './SalesTrendChart'; // New Chart
-import UserReviews from './UserReviews';
 import './AnalyticsDashboard.css';
 import WordCloudChart from './WordCloudChart';
 

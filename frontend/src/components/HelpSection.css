@@ -16,7 +16,7 @@
   
   .help-card h2,
   .help-card h3 {
-    color: #1d3557; /* Primary Text Color */
+    color: #1d3557;
   }
   
   .ant-typography p {
@@ -42,11 +42,11 @@
   
   .ant-anchor-link-title {
     font-size: 16px;
-    color: #457b9d; /* Secondary Text Color */
+    color: #457b9d;
   }
   
   .ant-anchor-link-active > .ant-anchor-link-title {
-    color: #1d3557; /* Primary Text Color */
+    color: #1d3557;
     font-weight: bold;
   }
   

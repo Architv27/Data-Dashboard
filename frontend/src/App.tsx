@@ -7,7 +7,7 @@ import { createGlobalStyle } from 'styled-components';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import DataTable from './components/DataTable';
 import UserReviews from './components/UserReviews';
-import HelpSection from './components/HelpSection'; // Import HelpSection component
+import HelpSection from './components/HelpSection';
 import './App.css';
 
 const { Header, Content, Footer } = Layout;
@@ -89,7 +89,7 @@ const App: React.FC = () => {
           <AnalyticsDashboard />
           <DataTable />
           <UserReviews />
-          <HelpSection /> {/* Include HelpSection component */}
+          <HelpSection />
         </Content>
 
         {/* Footer */}

@@ -53,17 +53,13 @@ const TopProductsChart: React.FC = () => {
   const [ratingRange, setRatingRange] = useState<[number, number]>([0, 5]);
   const [sortBy, setSortBy] = useState<string>('popularity_score');
   
-  // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 10;
 
-  // State to manage filter panel visibility
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
   useEffect(() => {
-    // Fetch top products based on current filters
     fetchTopProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories, ratingRange, sortBy, currentPage]);
 
   const fetchTopProducts = async () => {

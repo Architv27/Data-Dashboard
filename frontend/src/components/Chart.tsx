@@ -32,7 +32,7 @@ const Chart: React.FC = () => {
     axios
       .get<Product[]>('http://localhost:8000/products/')
       .then((response) => {
-        console.log('API Response:', response.data); // Debugging line
+        console.log('API Response:', response.data);
 
         // Check if response.data is an array
         if (!Array.isArray(response.data)) {
@@ -51,13 +51,12 @@ const Chart: React.FC = () => {
           return acc;
         }, {});
 
-        // Group small categories into 'Other'
         const chartData: ChartData[] = [];
         let otherCount = 0;
 
         for (const [category, count] of Object.entries(categoryCounts)) {
           const percentage = (count / totalProducts);
-          if (percentage >= 0.05) { // 5% threshold
+          if (percentage >= 0.05) {
             chartData.push({
               category,
               count,
@@ -76,7 +75,7 @@ const Chart: React.FC = () => {
           });
         }
 
-        console.log('Processed Chart Data:', chartData); // Debugging line
+        console.log('Processed Chart Data:', chartData);
 
         setData(chartData);
         setLoading(false);

@@ -53,7 +53,7 @@ const CorrelationHeatmap: React.FC = () => {
         data.push({
           x: xLabel,
           y: yLabel,
-          value: matrix.discount_percentage[xLabel], // Choose the correlation metric to visualize
+          value: matrix.discount_percentage[xLabel],
         });
       });
     });
@@ -81,11 +81,10 @@ const CorrelationHeatmap: React.FC = () => {
     return null;
   }
 
-  // Determine color scaling based on value
   const minValue = Math.min(...heatmapData.map((d) => d.value));
   const maxValue = Math.max(...heatmapData.map((d) => d.value));
 
-  // Create a color scale function
+
   const getColor = (value: number): string => {
     const ratio = (value - minValue) / (maxValue - minValue);
     const red = Math.floor(255 * (1 - ratio));
@@ -93,7 +92,6 @@ const CorrelationHeatmap: React.FC = () => {
     return `rgb(${red}, ${green}, 0)`;
   };
 
-  // Prepare data for the scatter plot
   const scatterData = heatmapData.map((d) => ({
     x: d.x,
     y: d.y,
@@ -137,7 +135,7 @@ const CorrelationHeatmap: React.FC = () => {
                 key={`circle-${index}`}
                 cx={0}
                 cy={0}
-                r={Math.abs(entry.value) * 5} // Adjust the multiplier as needed
+                r={Math.abs(entry.value) * 5}
                 fill={entry.color}
                 stroke="#000"
                 strokeWidth={1}
