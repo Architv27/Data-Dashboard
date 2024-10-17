@@ -1,14 +1,13 @@
 /* src/components/DataTable.css */
 
-/* Container Styling */
 .table-container {
-  padding: 20px;
-  background-color: #ffffff; /* White background for a clean look */
-  border-radius: 8px; /* Rounded corners for modern aesthetics */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
-  margin: 20px auto; /* Center the table container */
-  max-width: 1200px; /* Limit the maximum width for better readability */
+  background-color: #ffffff;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
+
 
 /* Table Text Styling */
 .table-text {

@@ -1,20 +1,43 @@
 /* src/components/UserReviews.css */
 
 .reviews-container {
-    padding: 20px;
+    background-color: #FAFAFA; /* Very Light Gray */
+    padding: 40px 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  
+  .reviews-container h2 {
+    color: #1D3557; /* Primary Text Color */
+    font-size: 24px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  
+  .filters {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+  
+  .filters > * {
+    margin: 10px;
   }
   
   .review-card {
     width: 300px;
     min-width: 300px;
     max-width: 300px;
-    height: 450px; /* Fixed height for consistent card sizes */
+    height: 450px;
     flex: 0 0 auto;
     margin-right: 20px;
-    background-color: #ffffff;
-    padding: 16px;
-    border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    background-color: #FFFFFF; /* White */
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     transition: transform 0.3s, box-shadow 0.3s;
@@ -22,33 +45,31 @@
   
   .review-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   }
   
   .user-info {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 16px;
   }
   
-  .user-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    margin-right: 10px;
+  .user-details {
+    margin-left: 12px;
   }
   
   .product-info {
-    margin-bottom: 10px;
+    margin-bottom: 16px;
     font-size: 16px;
     font-weight: 600;
-    color: #1d3557;
+    color: #1D3557; /* Primary Text Color */
   }
   
   .review-content {
     flex-grow: 1;
-    margin-top: 10px;
+    margin-top: 16px;
     overflow: hidden;
+    color: #1D3557; /* Primary Text Color */
   }
   
   .review-content p {
@@ -58,7 +79,7 @@
   }
   
   .helpful-count {
-    margin-top: 10px;
+    margin-top: 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -72,22 +93,23 @@
     background: none;
     border: none;
     cursor: pointer;
-    margin-left: 5px;
+    margin-left: 8px;
     font-size: 20px;
-    color: #6c757d;
+    color: #457B9D; /* Secondary Accent Color */
   }
   
   .thumb-button:hover {
-    color: #1d3557;
+    color: #1D3557; /* Primary Text Color */
   }
   
   .ant-rate {
     font-size: 16px;
-    color: #e63946;
+    color: #E63946; /* Soft Red */
   }
   
   .ant-typography {
     font-family: 'Poppins', sans-serif;
+    color: #1D3557; /* Primary Text Color */
   }
   
   @media (max-width: 768px) {
@@ -96,5 +118,18 @@
       min-width: 250px;
       max-width: 250px;
     }
+  }
+  
+  /* Filters Styling */
+  .filters {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+  
+  .filters > * {
+    margin: 10px;
   }
   

@@ -5,6 +5,7 @@ import { Typography, Spin, Alert, Rate, message, Select, Avatar, Button, Input }
 import axios from 'axios';
 import InfiniteMovingCards from './InfiniteMovingCards';
 import { LikeOutlined, DislikeOutlined, UserOutlined, SearchOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
 import './UserReviews.css';
 
 const { Title, Text } = Typography;
@@ -31,11 +32,15 @@ const UserReviews: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [helpfulAnimations, setHelpfulAnimations] = useState<{ [key: string]: boolean }>({});
+  const [loadingReviews, setLoadingReviews] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const response = await axios.get<Review[]>('http://localhost:8000/analytics/reviews');
+        const response = await axios.get<Review[]>('http://localhost:8000/analytics/reviews', {
+          params: { limit: 50 }, // Fetch more reviews for better scrolling effect
+        });
         setReviews(response.data);
         setFilteredReviews(response.data);
       } catch (err) {
@@ -50,6 +55,7 @@ const UserReviews: React.FC = () => {
 
   const handleHelpful = async (review_id: string, change: number) => {
     try {
+      setLoadingReviews((prev) => ({ ...prev, [review_id]: true }));
       await axios.post(`http://localhost:8000/analytics/reviews/${review_id}/helpful`, { change });
       setReviews((prevReviews) =>
         prevReviews.map((review) =>
@@ -65,8 +71,16 @@ const UserReviews: React.FC = () => {
             : review
         )
       );
+      // Trigger animation
+      setHelpfulAnimations((prev) => ({ ...prev, [review_id]: true }));
+      // Reset animation state after animation completes
+      setTimeout(() => {
+        setHelpfulAnimations((prev) => ({ ...prev, [review_id]: false }));
+      }, 500);
     } catch (err) {
       message.error('Failed to update helpful count. Please try again later.');
+    } finally {
+      setLoadingReviews((prev) => ({ ...prev, [review_id]: false }));
     }
   };
 
@@ -119,7 +133,7 @@ const UserReviews: React.FC = () => {
 
   return (
     <div className="reviews-container">
-      <Title level={3} style={{ textAlign: 'center', marginBottom: '20px' }}>
+      <Title level={3} style={{ textAlign: 'center', marginBottom: '40px' }}>
         User Reviews
       </Title>
       {/* Filter and Search */}
@@ -127,7 +141,7 @@ const UserReviews: React.FC = () => {
         <Select
           allowClear
           placeholder="Filter by Rating"
-          style={{ width: 200, marginRight: 20 }}
+          style={{ width: 200 }}
           onChange={handleFilterChange}
         >
           <Option value={5}>5 Stars</Option>
@@ -149,7 +163,13 @@ const UserReviews: React.FC = () => {
         speed="normal"
         pauseOnHover={true}
         renderItem={(item: Review, index: number) => (
-          <div className="review-card" key={index}>
+          <motion.div
+            className="review-card"
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
             <div className="user-info">
               <Avatar
                 size={64}
@@ -174,23 +194,32 @@ const UserReviews: React.FC = () => {
               <Text>{item.review_content}</Text>
             </div>
             <div className="helpful-count">
-              <Text type="secondary">Helpful Count: {item.helpful_count || 0}</Text>
+              <motion.div
+                animate={helpfulAnimations[item.review_id] ? { scale: 1.2 } : { scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Text type="secondary">Helpful Count: {item.helpful_count || 0}</Text>
+              </motion.div>
               <div className="thumbs-icons">
                 <Button
                   onClick={() => handleHelpful(item.review_id, 1)}
                   className="thumb-button"
                   type="text"
                   icon={<LikeOutlined />}
+                  loading={loadingReviews[item.review_id]}
+                  disabled={loadingReviews[item.review_id]}
                 />
                 <Button
                   onClick={() => handleHelpful(item.review_id, -1)}
                   className="thumb-button"
                   type="text"
                   icon={<DislikeOutlined />}
+                  loading={loadingReviews[item.review_id]}
+                  disabled={loadingReviews[item.review_id]}
                 />
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
       />
     </div>

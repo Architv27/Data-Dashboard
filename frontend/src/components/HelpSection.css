@@ -1,0 +1,58 @@
+/* src/components/HelpSection.css */
+
+.help-section {
+    background-color: #ffffff;
+    padding: 40px 20px;
+    border-radius: 12px;
+    margin-top: 40px;
+  }
+  
+  .help-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+  
+  .help-card h2,
+  .help-card h3 {
+    color: #1d3557; /* Primary Text Color */
+  }
+  
+  .ant-typography p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #1d3557;
+  }
+  
+  .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+    font-size: 16px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+  }
+  
+  .ant-collapse > .ant-collapse-item > .ant-collapse-header svg {
+    margin-right: 8px;
+  }
+  
+  .ant-anchor-wrapper {
+    margin-bottom: 24px;
+  }
+  
+  .ant-anchor-link-title {
+    font-size: 16px;
+    color: #457b9d; /* Secondary Text Color */
+  }
+  
+  .ant-anchor-link-active > .ant-anchor-link-title {
+    color: #1d3557; /* Primary Text Color */
+    font-weight: bold;
+  }
+  
+  @media (max-width: 768px) {
+    .help-section {
+      padding: 20px 10px;
+    }
+  }
+  

@@ -32,7 +32,9 @@ import {
   DeleteOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
+  DownloadOutlined, // Newly added
 } from '@ant-design/icons';
+import { CSVLink } from 'react-csv'; // Newly added
 import './DataTable.css';
 
 const { Text, Title } = Typography;
@@ -317,6 +319,26 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
     },
   ];
 
+  // Newly added export handler using react-csv's CSVLink
+  const headers = [
+    { label: 'Product Name', key: 'product_name' },
+    { label: 'Category', key: 'category' },
+    { label: 'Discounted Price (₹)', key: 'discounted_price' },
+    { label: 'Actual Price (₹)', key: 'actual_price' },
+    { label: 'Discount Percentage (%)', key: 'discount_percentage' },
+    { label: 'Rating', key: 'rating' },
+    { label: 'Rating Count', key: 'rating_count' },
+    { label: 'About Product', key: 'about_product' },
+    { label: 'Image Link', key: 'img_link' },
+    { label: 'Product Link', key: 'product_link' },
+  ];
+
+  const csvReport = {
+    data: data,
+    headers: headers,
+    filename: 'Products_Report.csv',
+  };
+
   return (
     <div className="table-container">
       {/* Header */}
@@ -324,9 +346,25 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
         <Title level={3} style={{ margin: 0, fontFamily: 'Arial, sans-serif' }}>
           Product Management
         </Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-          Add Product
-        </Button>
+        <Space>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleAdd}
+            aria-label="Add Product"
+          >
+            Add Product
+          </Button>
+          <CSVLink {...csvReport} style={{ textDecoration: 'none' }}>
+            <Button
+              type="default"
+              icon={<DownloadOutlined />}
+              aria-label="Export CSV"
+            >
+              Export CSV
+            </Button>
+          </CSVLink>
+        </Space>
       </div>
 
       <Table<Product>
@@ -367,7 +405,92 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
         centered
       >
         <Form form={form} layout="vertical" className="modal-form">
-          {/* ...form items remain unchanged... */}
+          <Form.Item
+            name="product_name"
+            label="Product Name"
+            rules={[{ required: true, message: 'Please enter the product name' }]}
+          >
+            <Input placeholder="Enter product name" />
+          </Form.Item>
+          <Form.Item
+            name="category"
+            label="Category"
+            rules={[{ required: true, message: 'Please select a category' }]}
+          >
+            <Select placeholder="Select category">
+              <Option value="Electronics">Electronics</Option>
+              <Option value="Clothing">Clothing</Option>
+              <Option value="Home">Home</Option>
+              {/* Add more categories as needed */}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="discounted_price"
+            label="Discounted Price (₹)"
+            rules={[{ required: true, message: 'Please enter the discounted price' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              placeholder="Enter discounted price"
+            />
+          </Form.Item>
+          <Form.Item
+            name="actual_price"
+            label="Actual Price (₹)"
+            rules={[{ required: true, message: 'Please enter the actual price' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              placeholder="Enter actual price"
+            />
+          </Form.Item>
+          <Form.Item
+            name="discount_percentage"
+            label="Discount Percentage (%)"
+            rules={[{ required: true, message: 'Please enter the discount percentage' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              max={100}
+              placeholder="Enter discount percentage"
+            />
+          </Form.Item>
+          <Form.Item
+            name="rating"
+            label="Rating"
+            rules={[{ required: true, message: 'Please enter the rating' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              max={5}
+              step={0.1}
+              placeholder="Enter rating"
+            />
+          </Form.Item>
+          <Form.Item
+            name="rating_count"
+            label="Rating Count"
+            rules={[{ required: true, message: 'Please enter the rating count' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={0}
+              placeholder="Enter rating count"
+            />
+          </Form.Item>
+          <Form.Item name="about_product" label="About Product">
+            <Input.TextArea rows={4} placeholder="Enter product description" />
+          </Form.Item>
+          <Form.Item name="img_link" label="Image Link">
+            <Input placeholder="Enter image URL" />
+          </Form.Item>
+          <Form.Item name="product_link" label="Product Link">
+            <Input placeholder="Enter product URL" />
+          </Form.Item>
         </Form>
       </Modal>
     </div>

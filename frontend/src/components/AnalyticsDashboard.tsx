@@ -10,6 +10,7 @@ import TopProductsChart from './TopProductCharts';
 import SalesTrendChart from './SalesTrendChart'; // New Chart
 import UserReviews from './UserReviews';
 import './AnalyticsDashboard.css';
+import WordCloudChart from './WordCloudChart';
 
 const { Title } = Typography;
 
@@ -36,9 +37,9 @@ const AnalyticsDashboard: React.FC = () => {
       content: <TopProductsChart />,
     },
     {
-      title: 'User Reviews',
-      value: 'user-reviews',
-      content: <UserReviews />,
+      title: 'Word Cloud',
+      value: 'word-cloud',
+      content: <WordCloudChart />,
     },
   ];
 
