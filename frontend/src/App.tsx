@@ -94,7 +94,7 @@ const App: React.FC = () => {
 
         {/* Footer */}
         <Footer>
-          Fintech Product Dashboard ©2024 Created by Your Company Name
+          Fintech Product Dashboard ©2024 Created by Archit Verma
         </Footer>
       </Layout>
     </>
