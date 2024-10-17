@@ -1,0 +1,45 @@
+/* src/components/SentimentDistributionChart.css */
+
+.sentiment-chart-container {
+    padding: 20px;
+    background-color: #f0f2f5;
+    min-height: 100vh;
+  }
+  
+  .filter-card {
+    margin-bottom: 20px;
+    background-color: #ffffff;
+  }
+  
+  .filter-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .chart-card {
+    margin-bottom: 20px;
+    background-color: #ffffff;
+  }
+  
+  .chart-card .ant-card-head-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .ant-table-thead > tr > th {
+    background-color: #fafafa;
+    font-weight: bold;
+  }
+  
+  @media (max-width: 768px) {
+    .filter-container {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .filter-container > *:not(:first-child) {
+      margin-top: 10px;
+      margin-left: 0;
+    }
+  }
+  

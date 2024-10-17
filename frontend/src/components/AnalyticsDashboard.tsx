@@ -1,90 +1,56 @@
 // src/components/AnalyticsDashboard.tsx
 
 import React from 'react';
-import { Row, Col, Card, Typography, Divider } from 'antd';
+import { Card, Typography } from 'antd';
+import Tabs from './Tabs';
 import AnalyticsChart from './AnalyticsChart';
 import SentimentDistributionChart from './SentimentDistributionChart';
 import PriceDiscountAnalysisChart from './PriceDiscountanalysis';
 import TopProductsChart from './TopProductCharts';
-import UserReviews from './UserReviews'; // Import the new UserReviews component
-import './AnalyticsDashboard.css'; // Import the updated CSS
+import SalesTrendChart from './SalesTrendChart'; // New Chart
+import UserReviews from './UserReviews';
+import './AnalyticsDashboard.css';
 
 const { Title } = Typography;
 
 const AnalyticsDashboard: React.FC = () => {
+  const tabsData = [
+    {
+      title: 'Analytics Overview',
+      value: 'analytics-overview',
+      content: <AnalyticsChart />,
+    },
+    {
+      title: 'Sentiment Distribution',
+      value: 'sentiment-distribution',
+      content: <SentimentDistributionChart />,
+    },
+    {
+      title: 'Price & Discount Analysis',
+      value: 'price-discount-analysis',
+      content: <PriceDiscountAnalysisChart />,
+    },
+    {
+      title: 'Top Performing Products',
+      value: 'top-performing-products',
+      content: <TopProductsChart />,
+    },
+    {
+      title: 'User Reviews',
+      value: 'user-reviews',
+      content: <UserReviews />,
+    },
+  ];
+
   return (
-    <div className="dashboard-container">
-      {/* Header Section */}
+    <div className="analytics-dashboard">
       <div className="dashboard-header">
         <Title level={2} className="dashboard-title">
           Analytics Dashboard
         </Title>
-        <Divider />
       </div>
-
-      {/* Parent Card Encapsulating All Analytics */}
-      <Card className="parent-dashboard-card" bordered={false}>
-        <Row gutter={[24, 24]} align="stretch">
-          {/* Analytics Overview */}
-          <Col xs={24} lg={12}>
-            <div className="child-card">
-              <Title level={4} className="child-card-title">
-                Analytics Overview
-              </Title>
-              <div className="child-card-content">
-                <AnalyticsChart />
-              </div>
-            </div>
-          </Col>
-
-          {/* Sentiment Distribution */}
-          <Col xs={24} lg={12}>
-            <div className="child-card">
-              <Title level={4} className="child-card-title">
-                Sentiment Distribution
-              </Title>
-              <div className="child-card-content">
-                <SentimentDistributionChart />
-              </div>
-            </div>
-          </Col>
-
-          {/* Price & Discount Analysis */}
-          <Col xs={24} lg={12}>
-            <div className="child-card">
-              <Title level={4} className="child-card-title">
-                Price & Discount Analysis
-              </Title>
-              <div className="child-card-content">
-                <PriceDiscountAnalysisChart />
-              </div>
-            </div>
-          </Col>
-
-          {/* Top Performing Products */}
-          <Col xs={24} lg={12}>
-            <div className="child-card">
-              <Title level={4} className="child-card-title">
-                Top Performing Products
-              </Title>
-              <div className="child-card-content">
-                <TopProductsChart />
-              </div>
-            </div>
-          </Col>
-
-          {/* User Reviews */}
-          <Col xs={24}>
-            <div className="child-card">
-              <Title level={4} className="child-card-title">
-                User Reviews
-              </Title>
-              <div className="child-card-content">
-                <UserReviews />
-              </div>
-            </div>
-          </Col>
-        </Row>
+      <Card className="dashboard-card">
+        <Tabs tabs={tabsData} />
       </Card>
     </div>
   );

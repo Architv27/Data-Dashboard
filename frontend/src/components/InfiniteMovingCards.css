@@ -1,0 +1,47 @@
+/* src/components/InfiniteMovingCards.css */
+
+.infinite-scroller {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    background-color: #f8f9fa;
+    padding: 20px 0;
+  }
+  
+  .infinite-scroller-content {
+    display: flex;
+    flex-wrap: nowrap;
+    animation: scroll 40s linear infinite;
+    align-items: stretch;
+  }
+  
+  .infinite-scroller.start .infinite-scroller-content {
+    animation-play-state: running;
+  }
+  
+  .infinite-scroller.pause-on-hover:hover .infinite-scroller-content {
+    animation-play-state: paused;
+  }
+  
+  .infinite-scroller.fast .infinite-scroller-content {
+    animation-duration: 20s;
+  }
+  
+  .infinite-scroller.slow .infinite-scroller-content {
+    animation-duration: 80s;
+  }
+  
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  
+  .scroller-item {
+    flex: 0 0 auto;
+    display: flex;
+  }
+  

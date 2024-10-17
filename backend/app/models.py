@@ -1,8 +1,8 @@
 from typing import Optional, List
 from bson import ObjectId
-from pydantic import BaseModel, Field, ConfigDict, field_validator, ValidationInfo
-from pydantic_core import core_schema
+from pydantic import BaseModel, Field, ConfigDict, validator
 import logging
+from pydantic_core import core_schema
 import math  # Import math module
 
 # Configure logging
@@ -16,7 +16,7 @@ class PyObjectId(ObjectId):
         return core_schema.general_plain_validator_function(cls.validate)
     
     @classmethod
-    def validate(cls, v, info: ValidationInfo):
+    def validate(cls, v, info):
         if not ObjectId.is_valid(v):
             raise ValueError("Invalid ObjectId")
         return ObjectId(v)
@@ -27,6 +27,7 @@ class PyObjectId(ObjectId):
         json_schema.update(type="string")
         return json_schema
 
+# Product Models
 class ProductBase(BaseModel):
     product_name: str
     category: str
@@ -40,8 +41,7 @@ class ProductBase(BaseModel):
     product_link: Optional[str] = None
 
     # Custom validators
-    @field_validator('discounted_price', 'actual_price', 'discount_percentage', mode='before')
-    @classmethod
+    @validator('discounted_price', 'actual_price', 'discount_percentage', pre=True)
     def parse_float_fields(cls, value):
         if value is None:
             return None
@@ -57,8 +57,7 @@ class ProductBase(BaseModel):
         logger.warning(f"Invalid type for float field: {type(value)}. Setting to None.")
         return None
 
-    @field_validator('rating', mode='before')
-    @classmethod
+    @validator('rating', pre=True)
     def parse_rating_field(cls, value):
         if value is None:
             return None
@@ -80,8 +79,7 @@ class ProductBase(BaseModel):
         logger.warning(f"Invalid type for 'rating': {type(value)}. Setting to None.")
         return None
 
-    @field_validator('rating_count', mode='before')
-    @classmethod
+    @validator('rating_count', pre=True)
     def parse_int_fields(cls, value):
         if value is None:
             return None
@@ -102,11 +100,10 @@ class ProductBase(BaseModel):
         logger.warning(f"Invalid type for 'rating_count': {type(value)}. Setting to None.")
         return None
 
-    model_config = ConfigDict(
-        populate_by_name=True,  # Updated key
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True  # Updated key
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
 class ProductCreate(ProductBase):
     pass
@@ -120,11 +117,10 @@ class ProductsResponse(BaseModel):
     page_size: int
     products: List[Product]
 
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
 # User Models
 class UserBase(BaseModel):
@@ -137,18 +133,67 @@ class User(UserBase):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     reviews: List[str] = []
 
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
 # Review Models
 class ReviewBase(BaseModel):
-    review_title: str
-    review_content: str
+    review_id: str
     product_id: str
     user_id: str
+    user_name: Optional[str] = None
+    review_title: str
+    review_content: str
+    rating: Optional[int] = None
+    review_date: Optional[str] = None
+    helpful_count: Optional[int] = 0
+
+    # Validators for rating and helpful_count
+    @validator('rating', pre=True)
+    def validate_rating(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            if 1 <= int(value) <= 5:
+                return int(value)
+            else:
+                logger.warning(f"Invalid 'rating' value '{value}'. Must be between 1 and 5. Setting to None.")
+                return None
+        if isinstance(value, str):
+            try:
+                val = int(value)
+                if 1 <= val <= 5:
+                    return val
+                else:
+                    logger.warning(f"Invalid 'rating' value '{value}'. Must be between 1 and 5. Setting to None.")
+                    return None
+            except ValueError:
+                logger.warning(f"Cannot convert 'rating' value '{value}' to int. Setting to None.")
+                return None
+        logger.warning(f"Invalid type for 'rating': {type(value)}. Setting to None.")
+        return None
+
+    @validator('helpful_count', pre=True)
+    def validate_helpful_count(cls, value):
+        if value is None:
+            return 0  # Default to 0 if not provided
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except ValueError:
+                logger.warning(f"Cannot convert 'helpful_count' value '{value}' to int. Setting to 0.")
+                return 0
+        logger.warning(f"Invalid type for 'helpful_count': {type(value)}. Setting to 0.")
+        return 0
+
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
 class ReviewCreate(ReviewBase):
     pass
@@ -156,8 +201,7 @@ class ReviewCreate(ReviewBase):
 class Review(ReviewBase):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
 
-    model_config = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
-    )
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}

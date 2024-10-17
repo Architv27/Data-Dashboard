@@ -1,0 +1,100 @@
+/* src/components/UserReviews.css */
+
+.reviews-container {
+    padding: 20px;
+  }
+  
+  .review-card {
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
+    height: 450px; /* Fixed height for consistent card sizes */
+    flex: 0 0 auto;
+    margin-right: 20px;
+    background-color: #ffffff;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .review-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+  
+  .user-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 10px;
+  }
+  
+  .product-info {
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d3557;
+  }
+  
+  .review-content {
+    flex-grow: 1;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  
+  .review-content p {
+    max-height: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .helpful-count {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .thumbs-icons {
+    display: flex;
+  }
+  
+  .thumb-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 5px;
+    font-size: 20px;
+    color: #6c757d;
+  }
+  
+  .thumb-button:hover {
+    color: #1d3557;
+  }
+  
+  .ant-rate {
+    font-size: 16px;
+    color: #e63946;
+  }
+  
+  .ant-typography {
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  @media (max-width: 768px) {
+    .review-card {
+      width: 250px;
+      min-width: 250px;
+      max-width: 250px;
+    }
+  }
+  

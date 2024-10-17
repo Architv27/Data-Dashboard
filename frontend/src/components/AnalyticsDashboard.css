@@ -1,106 +1,23 @@
 /* src/components/AnalyticsDashboard.css */
 
-/* Container Styling */
-.dashboard-container {
-    padding: 20px;
-    background-color: #f0f2f5; /* Light grey background for contrast */
-    min-height: 100vh; /* Ensure the dashboard covers the full viewport height */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern sans-serif font */
+.analytics-dashboard {
+    background-color: #f5f7fa;
+    padding: 24px;
   }
   
-  /* Header Styling */
   .dashboard-header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
   
   .dashboard-title {
-    color: #001529; /* Ant Design's default primary color */
+    color: #1d3557;
   }
   
-  /* Parent Card Styling */
-  .parent-dashboard-card {
-    background-color: #ffffff; /* White background for a clean look */
-    border-radius: 8px; /* Rounded corners */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09); /* Subtle shadow for depth */
-    padding: 24px; /* Inner padding */
-  }
-  
-  /* Child Card Styling */
-  .child-card {
-    background-color: #fafafa; /* Slightly off-white for differentiation */
-    border-radius: 6px; /* Rounded corners */
-    padding: 16px; /* Inner padding */
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06); /* Subtle shadow */
-    height: 100%; /* Ensure child cards take full height */
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Ensuring Uniform Height Without Scroll */
-  .child-card-title {
-    font-size: 16px;
-    color: #1890ff; /* Ant Design's primary blue */
-    margin-bottom: 16px;
-  }
-  
-  /* Child Card Content */
-  .child-card-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Prevent internal scrollbars */
-  }
-  
-  /* Chart Containers */
-  .child-card-content > * {
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Prevent internal scrollbars */
-  }
-  
-  /* Responsive Adjustments */
-  @media (max-width: 992px) {
-    .parent-dashboard-card {
-      padding: 16px;
-    }
-  
-    .child-card-title {
-      font-size: 14px;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .dashboard-title {
-      font-size: 24px;
-    }
-  
-    .child-card-title {
-      font-size: 13px;
-    }
-  
-    .child-card {
-      padding: 12px;
-    }
-  }
-  
-  /* Prevent Horizontal Scrolling */
-  .dashboard-container,
-  .parent-dashboard-card,
-  .child-card {
-    max-width: 100%;
-    overflow-x: hidden; /* Hide any horizontal overflow */
-  }
-  
-  /* Ensure Charts Fit Within Their Containers */
-  .child-card-content .ant-chart {
-    width: 100% !important;
-    height: 100% !important;
-  }
-  
-  /* Optional: Adjust Chart Margins/Paddings If Necessary */
-  .child-card-content .ant-chart-container {
-    padding: 0 !important;
-    margin: 0 !important;
+  .dashboard-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 24px;
   }
   

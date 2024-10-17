@@ -1,0 +1,29 @@
+/* analyticsChart.css */
+
+.dashboard-container {
+    padding: 20px;
+    background-color: #f5f7fa;
+  }
+  
+  .card {
+    border-radius: 8px;
+  }
+  
+  .card-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .statistic .ant-statistic-title {
+    color: #6b7280;
+  }
+  
+  .statistic .ant-statistic-content {
+    color: #111827;
+  }
+  
+  .table {
+    background-color: #fff;
+  }
+  
+  

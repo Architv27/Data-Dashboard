@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
-  PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { Spin } from 'antd';
 
@@ -32,9 +32,20 @@ const Chart: React.FC = () => {
     axios
       .get<Product[]>('http://localhost:8000/products/')
       .then((response) => {
+        console.log('API Response:', response.data); // Debugging line
+
+        // Check if response.data is an array
+        if (!Array.isArray(response.data)) {
+          throw new Error('API response is not an array');
+        }
+
         const totalProducts = response.data.length;
 
-        const categoryCounts = response.data.reduce((acc: any, product) => {
+        if (totalProducts === 0) {
+          throw new Error('No products found');
+        }
+
+        const categoryCounts = response.data.reduce((acc: Record<string, number>, product) => {
           const mainCategory = product.category ? product.category.split('|')[0] : 'Unknown';
           acc[mainCategory] = (acc[mainCategory] || 0) + 1;
           return acc;
@@ -45,15 +56,15 @@ const Chart: React.FC = () => {
         let otherCount = 0;
 
         for (const [category, count] of Object.entries(categoryCounts)) {
-          const percentage = (count as number) / totalProducts;
-          if (percentage >= 0.05) {
+          const percentage = (count / totalProducts);
+          if (percentage >= 0.05) { // 5% threshold
             chartData.push({
               category,
-              count: count as number,
+              count,
               percentage: percentage * 100,
             });
           } else {
-            otherCount += count as number;
+            otherCount += count;
           }
         }
 
@@ -65,12 +76,14 @@ const Chart: React.FC = () => {
           });
         }
 
+        console.log('Processed Chart Data:', chartData); // Debugging line
+
         setData(chartData);
         setLoading(false);
       })
       .catch((error) => {
         console.error(error);
-        setError('Failed to fetch data');
+        setError(error.message || 'Failed to fetch data');
         setLoading(false);
       });
   }, []);
@@ -84,11 +97,19 @@ const Chart: React.FC = () => {
   }
 
   if (error) {
-    return <div>{error}</div>;
+    return <div style={{ textAlign: 'center', color: 'red' }}>{error}</div>;
   }
 
   return (
-    <div style={{ width: '100%', height: 400, backgroundColor: '#fff', padding: '20px', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)', marginBottom: '20px' }}>
+    <div style={{
+      width: '100%',
+      height: 400,
+      backgroundColor: '#fff',
+      padding: '20px',
+      borderRadius: '6px',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      marginBottom: '20px',
+    }}>
       <ResponsiveContainer>
         <PieChart>
           <Pie
@@ -108,7 +129,12 @@ const Chart: React.FC = () => {
           </Pie>
           <Tooltip
             formatter={(value: any, name: any) => [`${value}`, `${name}`]}
-            contentStyle={{ backgroundColor: '#fff', borderRadius: '6px', border: 'none', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}
+            contentStyle={{
+              backgroundColor: '#fff',
+              borderRadius: '6px',
+              border: 'none',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            }}
             itemStyle={{ fontSize: 14, color: '#333' }}
           />
         </PieChart>

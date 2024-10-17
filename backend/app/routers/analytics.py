@@ -1,6 +1,6 @@
 # app/routers/analytics.py
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Body, Path
 from app.database import product_collection  # No separate review_collection
 import pandas as pd
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -9,9 +9,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, classification_report
 import re
 from typing import Optional, Union, List
-from collections import Counter
+from collections import Counter, defaultdict
 import logging
 import math
+import random  # Don't forget to import random
+from app.models import Review  # Ensure you import the Review model
 
 router = APIRouter(
     prefix="/analytics",
@@ -101,72 +103,289 @@ def clean_text(text: str) -> str:
     """
     return re.sub(r'[^a-zA-Z\s]', '', text.lower())
 
+@router.get("/summary")
+async def get_summary():
+    """
+    Returns comprehensive analytics data for the dashboard.
+    """
+    try:
+        # Fetch all products from the database
+        products = await product_collection.find().to_list(length=None)
 
-@router.get("/reviews")
-async def extract_reviews(product: dict) -> List[dict]:
+        total_products = len(products)
+        total_sales = 0
+        total_revenue = 0
+        total_profit = 0
+        category_stats = defaultdict(lambda: {
+            'total_products': 0,
+            'total_discount': 0,
+            'product_count': 0,
+            'total_sales': 0,
+            'total_revenue': 0,
+            'total_profit': 0
+        })
+        top_selling_products = []
+        low_stock_products = []
+        rating_stats = []
+        
+        for product in products:
+            # Clean and extract necessary fields
+            category = product.get('category', 'Unknown').split('|')[0].strip()
+            actual_price = clean_number(product.get('actual_price'))
+            discounted_price = clean_number(product.get('discounted_price'))
+            discount_percentage = clean_number(product.get('discount_percentage'))
+            rating = product.get('rating', 0)
+            rating_count = clean_number(product.get('rating_count'))
+            inventory = product.get('inventory', 100)  # Assuming default inventory
+            cost_price = product.get('cost_price', actual_price * 0.7)  # Assuming cost price is 70% of actual price
+
+            # Update category stats
+            category_stats[category]['total_products'] += 1
+            if discount_percentage is not None:
+                category_stats[category]['total_discount'] += discount_percentage
+                category_stats[category]['product_count'] += 1
+
+            # Calculate total sales and revenue
+            if discounted_price is not None and rating_count is not None:
+                sales = discounted_price * rating_count
+                revenue = sales
+                profit = (discounted_price - cost_price) * rating_count
+                total_sales += sales
+                total_revenue += revenue
+                total_profit += profit
+                category_stats[category]['total_sales'] += sales
+                category_stats[category]['total_revenue'] += revenue
+                category_stats[category]['total_profit'] += profit
+
+                # Add to top selling products list
+                top_selling_products.append({
+                    'product_id': product.get('product_id'),
+                    'product_name': product.get('product_name'),
+                    'sales': sales
+                })
+
+            # Add to rating stats
+            rating_stats.append({
+                'product_id': product.get('product_id'),
+                'product_name': product.get('product_name'),
+                'rating': rating,
+                'rating_count': rating_count
+            })
+
+            # Check for low stock
+            if inventory < 10:
+                low_stock_products.append({
+                    'product_id': product.get('product_id'),
+                    'product_name': product.get('product_name'),
+                    'inventory': inventory
+                })
+
+        # Calculate average discount per category
+        for category, stats in category_stats.items():
+            if stats['product_count'] > 0:
+                stats['average_discount'] = stats['total_discount'] / stats['product_count']
+            else:
+                stats['average_discount'] = 0
+            # Remove unnecessary fields
+            del stats['total_discount']
+            del stats['product_count']
+
+        # Get top 5 selling products
+        top_selling_products = sorted(top_selling_products, key=lambda x: x['sales'], reverse=True)[:5]
+
+        summary = {
+            'total_products': total_products,
+            'total_sales': total_sales,
+            'total_revenue': total_revenue,
+            'total_profit': total_profit,
+            'category_stats': dict(category_stats),
+            'top_selling_products': top_selling_products,
+            'low_stock_products': low_stock_products,
+            'rating_stats': rating_stats
+        }
+
+        return summary
+
+    except Exception as e:
+        logger.error(f"Error fetching summary analytics: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+def extract_reviews_from_product(product: dict) -> List[dict]:
     """
     Extracts individual reviews from a product document.
-
-    Parameters:
-        product (dict): The product document containing embedded reviews.
-
-    Returns:
-        List[dict]: A list of individual review dictionaries.
     """
     user_ids = product.get("user_id", "").split(",")
     user_names = product.get("user_name", "").split(",")
     review_ids = product.get("review_id", "").split(",")
     review_titles = product.get("review_title", "").split(",")
     review_contents = product.get("review_content", "").split(",")
+    ratings = [product.get("rating")] * len(review_ids)  # Use product rating for all reviews
+    review_dates = [product.get("review_date", "")] * len(review_ids)  # If available
+    product_name = product.get("product_name", "Unknown")
+    product_id = product.get("product_id", "")
 
-    # Handle 'helpful_count' if it exists; else default to 0
+    # Handle 'helpful_count'
     if "helpful_count" in product and product["helpful_count"]:
         helpful_counts = product.get("helpful_count", "").split(",")
     else:
         helpful_counts = ["0"] * len(review_ids)  # Default to 0 if not present
 
-    # Determine the minimum number of reviews to prevent IndexError
-    num_reviews = min(len(user_ids), len(user_names), len(review_ids), len(review_titles), len(review_contents), len(helpful_counts))
-
-    if num_reviews < len(review_ids):
-        logger.warning(f"Product ID {product.get('product_id', 'Unknown')} has mismatched review counts. Expected {num_reviews}, got {len(review_ids)}.")
+    # Ensure all lists are of the same length
+    num_reviews = min(
+        len(user_ids),
+        len(user_names),
+        len(review_ids),
+        len(review_titles),
+        len(review_contents),
+        len(ratings),
+        len(helpful_counts),
+    )
 
     reviews = []
     for i in range(num_reviews):
-        try:
-            review_id = review_ids[i].strip()
-            product_id = product.get("product_id", "").strip()
-            user_id = user_ids[i].strip()
-            user_name = user_names[i].strip()
-            review_title = review_titles[i].strip()
-            review_content = review_contents[i].strip()
-            rating = safe_float_conversion(product.get("rating", 0))
-            review_date = product.get("review_date", "")  # Adjust if 'review_date' exists
-            helpful_count_str = helpful_counts[i].strip() if i < len(helpful_counts) else "0"
-            helpful_count = clean_number(helpful_count_str) if helpful_count_str else 0
-
-            if rating is None:
-                logger.warning(f"Product ID {product_id}, Review ID {review_id}: Invalid rating '{product.get('rating')}'. Setting to None.")
-            if helpful_count is None:
-                logger.warning(f"Product ID {product_id}, Review ID {review_id}: Invalid helpful_count '{helpful_count_str}'. Setting to 0.")
-
-            review = {
-                "review_id": review_id,
-                "product_id": product_id,
-                "user_id": user_id,
-                "user_name": user_name,
-                "review_title": review_title,
-                "review_content": review_content,
-                "rating": rating,
-                "review_date": review_date.isoformat() if isinstance(review_date, pd.Timestamp) else review_date,
-                "helpful_count": helpful_count if helpful_count is not None else 0
-            }
-            reviews.append(review)
-        except Exception as e:
-            logger.error(f"Error processing review index {i} for Product ID {product.get('product_id', 'Unknown')}: {e}")
+        rating = safe_float_conversion(ratings[i])
+        helpful_count = int(helpful_counts[i]) if helpful_counts[i].isdigit() else 0
+        review = {
+            "review_id": review_ids[i].strip(),
+            "product_id": product_id.strip(),
+            "product_name": product_name.strip(),
+            "user_id": user_ids[i].strip(),
+            "user_name": user_names[i].strip(),
+            "review_title": review_titles[i].strip(),
+            "review_content": review_contents[i].strip(),
+            "rating": rating,
+            "review_date": review_dates[i],  # Adjust if you have actual review dates
+            "helpful_count": helpful_count,
+        }
+        reviews.append(review)
 
     return reviews
 
+@router.post("/reviews/{review_id}/helpful")
+async def update_helpful_count(review_id: str = Path(...), change: int = Body(...)):
+    """
+    Updates the helpful count for a review.
+    """
+    try:
+        # Find the product containing the review
+        product = await product_collection.find_one({
+            "review_id": {"$regex": f"\\b{re.escape(review_id)}\\b"}
+        })
+
+        if not product:
+            raise HTTPException(status_code=404, detail="Review not found")
+
+        # Extract the existing helpful counts
+        review_ids = product.get("review_id", "").split(",")
+        helpful_counts_str = product.get("helpful_count", "")
+        if helpful_counts_str:
+            helpful_counts = helpful_counts_str.split(",")
+        else:
+            helpful_counts = ["0"] * len(review_ids)
+
+        # Find the index of the review
+        try:
+            index = review_ids.index(review_id)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Review not found")
+
+        # Update the helpful_count
+        current_count = int(helpful_counts[index]) if helpful_counts[index].isdigit() else 0
+        new_count = max(0, current_count + change)  # Ensure count doesn't go negative
+        helpful_counts[index] = str(new_count)
+
+        # Update the 'helpful_count' field in the product document
+        updated_helpful_counts_str = ",".join(helpful_counts)
+        result = await product_collection.update_one(
+            {"_id": product["_id"]},
+            {"$set": {"helpful_count": updated_helpful_counts_str}}
+        )
+
+        if result.modified_count == 1:
+            return {"message": "Helpful count updated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update helpful count")
+
+    except Exception as e:
+        logger.error(f"Error updating helpful count: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.get("/reviews", response_model=List[Review])
+async def get_random_reviews():
+    """
+    Returns 10-15 random reviews with a balance of good, neutral, and bad reviews.
+    """
+    try:
+        # Fetch products that have reviews
+        products_with_reviews = await product_collection.find({
+            "review_id": {"$exists": True, "$ne": ""}
+        }).to_list(length=None)
+
+        all_reviews = []
+
+        # Extract reviews from each product
+        for product in products_with_reviews:
+            product_reviews = extract_reviews_from_product(product)
+            all_reviews.extend(product_reviews)
+
+        # If no reviews found, return an empty list
+        if not all_reviews:
+            return []
+
+        # Categorize reviews
+        good_reviews = [r for r in all_reviews if r.get("rating") is not None and r["rating"] >= 4]
+        neutral_reviews = [r for r in all_reviews if r.get("rating") == 3]
+        bad_reviews = [r for r in all_reviews if r.get("rating") is not None and r["rating"] <= 2]
+
+        # Shuffle the lists
+        random.shuffle(good_reviews)
+        random.shuffle(neutral_reviews)
+        random.shuffle(bad_reviews)
+
+        # Determine the number of reviews to select from each category
+        total_reviews_needed = random.randint(10, 15)
+        per_category = total_reviews_needed // 3
+
+        # Select reviews
+        selected_good_reviews = good_reviews[:per_category]
+        selected_neutral_reviews = neutral_reviews[:per_category]
+        selected_bad_reviews = bad_reviews[:per_category]
+
+        # If we need more reviews, fill up from the remaining reviews
+        remaining_needed = total_reviews_needed - (
+            len(selected_good_reviews) + len(selected_neutral_reviews) + len(selected_bad_reviews)
+        )
+        remaining_reviews = (
+            good_reviews[per_category:]
+            + neutral_reviews[per_category:]
+            + bad_reviews[per_category:]
+        )
+        random.shuffle(remaining_reviews)
+        selected_remaining_reviews = remaining_reviews[:remaining_needed]
+
+        # Combine all selected reviews
+        selected_reviews = (
+            selected_good_reviews
+            + selected_neutral_reviews
+            + selected_bad_reviews
+            + selected_remaining_reviews
+        )
+
+        # Shuffle the final list
+        random.shuffle(selected_reviews)
+
+        # Limit to total_reviews_needed in case we have extra
+        selected_reviews = selected_reviews[:total_reviews_needed]
+
+        # Convert to Review models
+        reviews = [Review(**review) for review in selected_reviews]
+
+        return reviews
+
+    except Exception as e:
+        logger.error(f"Error fetching reviews: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    
 @router.get("/sentiment_analysis")
 async def sentiment_analysis():
     """
@@ -182,7 +401,7 @@ async def sentiment_analysis():
     all_reviews = []
     try:
         async for product in product_collection.find():
-            reviews = extract_reviews(product)
+            reviews = extract_reviews_from_product(product)
             all_reviews.extend(reviews)
     except Exception as e:
         logger.error(f"Error fetching products for sentiment analysis: {e}")
@@ -371,14 +590,14 @@ async def rating_discount_correlation():
 
     return correlation
 
-
 @router.get("/sentiment_distribution")
 async def sentiment_distribution():
     """
-    Retrieves the distribution of sentiments across main categories.
+    Retrieves the distribution of sentiments across main categories and subcategories.
+    Includes average rating per category.
 
     Returns:
-        list of dict: Each dict contains main_category, sentiment, and count.
+        list of dict: Each dict contains main_category, subcategory, sentiment counts, percentages, and average_rating.
     """
     products = []
     try:
@@ -413,21 +632,60 @@ async def sentiment_distribution():
     if df.empty:
         raise HTTPException(status_code=500, detail="No valid numeric 'rating' data available.")
 
-    # Assign sentiment based on 'rating_numeric'
+    # Assign sentiment based on updated thresholds
     df['sentiment'] = df['rating_numeric'].apply(
-        lambda x: 'positive' if x >= 4.0 else ('neutral' if x == 3.0 else 'negative')
+        lambda x: 'positive' if x >= 4.0 else ('neutral' if x > 3.3 else 'negative')
     )
 
-    # Extract main category (assuming 'category' is a string containing categories separated by '|')
-    df['main_category'] = df['category'].apply(
-        lambda x: x.split('|')[0].strip() if isinstance(x, str) and '|' in x else (x.strip() if isinstance(x, str) else 'Unknown')
+    # Extract main category and subcategory
+    df['categories'] = df['category'].apply(
+        lambda x: x.split('|') if isinstance(x, str) else ['Unknown']
+    )
+    df['main_category'] = df['categories'].apply(lambda x: x[0].strip() if len(x) > 0 else 'Unknown')
+    df['subcategory'] = df['categories'].apply(lambda x: x[1].strip() if len(x) > 1 else 'Unknown')
+
+    # Group by main_category, subcategory, and sentiment
+    sentiment_counts = df.groupby(['main_category', 'subcategory', 'sentiment']).size().reset_index(name='count')
+
+    # Pivot the data to have sentiments as columns
+    sentiment_pivot = sentiment_counts.pivot_table(
+        index=['main_category', 'subcategory'],
+        columns='sentiment',
+        values='count',
+        fill_value=0
     )
 
-    # Group by main_category and sentiment
-    distribution = df.groupby(['main_category', 'sentiment']).size().reset_index(name='count')
+    # Ensure all sentiment columns are present
+    for sentiment in ['positive', 'neutral', 'negative']:
+        if sentiment not in sentiment_pivot.columns:
+            sentiment_pivot[sentiment] = 0
 
-    # Convert the DataFrame to a list of dictionaries
-    return distribution.to_dict(orient='records')
+    # Calculate total counts per category
+    sentiment_pivot['total'] = sentiment_pivot[['positive', 'neutral', 'negative']].sum(axis=1)
+
+    # Calculate percentages
+    for sentiment in ['positive', 'neutral', 'negative']:
+        sentiment_pivot[f'{sentiment}_percentage'] = (
+            sentiment_pivot[sentiment] / sentiment_pivot['total'] * 100
+        )
+
+    # Calculate average rating per category
+    avg_rating = df.groupby(['main_category', 'subcategory'])['rating_numeric'].mean()
+
+    # Combine data
+    sentiment_pivot = sentiment_pivot.merge(avg_rating, left_index=True, right_index=True)
+
+    # Rename 'rating_numeric' to 'average_rating'
+    sentiment_pivot = sentiment_pivot.rename(columns={'rating_numeric': 'average_rating'})
+
+    # Reset index to get 'main_category' and 'subcategory' as columns
+    sentiment_pivot = sentiment_pivot.reset_index()
+
+    # Convert to dict
+    result = sentiment_pivot.to_dict(orient='records')
+
+    return result
+
 
 
 @router.get("/sentiment_wordcloud")
@@ -441,7 +699,7 @@ async def sentiment_wordcloud():
     all_reviews = []
     try:
         async for product in product_collection.find():
-            reviews = extract_reviews(product)
+            reviews = extract_reviews_from_product(product)
             all_reviews.extend(reviews)
     except Exception as e:
         logger.error(f"Error fetching products for wordcloud: {e}")
