@@ -1,7 +1,7 @@
 // src/components/InfiniteMovingCards.tsx
 
 import React, { useEffect, useRef, useState } from 'react';
-import './InfiniteMovingCards.css'; // Import the CSS file
+import './InfiniteMovingCards.css';
 
 interface InfiniteMovingCardsProps {
   items: any[];
@@ -25,7 +25,6 @@ const InfiniteMovingCards: React.FC<InfiniteMovingCardsProps> = ({
     }
   }, []);
 
-  // Duplicate items for seamless scrolling
   const itemsToDisplay = [...items, ...items];
 
   return (

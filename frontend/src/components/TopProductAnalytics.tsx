@@ -106,7 +106,6 @@ const TopProductsAnalytics: React.FC = () => {
         rowKey="product_id"
         style={{ marginBottom: '20px' }}
       />
-      {/* Additional charts or detailed analytics can be added here */}
     </div>
   );
 };

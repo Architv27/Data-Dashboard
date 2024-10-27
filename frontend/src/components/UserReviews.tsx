@@ -39,7 +39,7 @@ const UserReviews: React.FC = () => {
     const fetchReviews = async () => {
       try {
         const response = await axios.get<Review[]>('http://localhost:8000/analytics/reviews', {
-          params: { limit: 50 }, // Fetch more reviews for better scrolling effect
+          params: { limit: 50 },
         });
         setReviews(response.data);
         setFilteredReviews(response.data);
@@ -73,7 +73,6 @@ const UserReviews: React.FC = () => {
       );
       // Trigger animation
       setHelpfulAnimations((prev) => ({ ...prev, [review_id]: true }));
-      // Reset animation state after animation completes
       setTimeout(() => {
         setHelpfulAnimations((prev) => ({ ...prev, [review_id]: false }));
       }, 500);

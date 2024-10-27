@@ -1,7 +1,7 @@
 /* src/components/AnalyticsDashboard.css */
 
 .analytics-dashboard {
-    background-color: #FAF9F6; /* Very Light Beige */
+    background-color: #FAF9F6;
     padding: 24px;
     border-radius: 12px;
     margin-bottom: 24px;
@@ -13,13 +13,13 @@
   }
   
   .dashboard-title {
-    color: #1D3557; /* Primary Text Color */
+    color: #1D3557;
     font-size: 24px;
     font-weight: 600;
   }
   
   .dashboard-card {
-    background-color: #FFFFFF; /* White */
+    background-color: #FFFFFF;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     padding: 24px;

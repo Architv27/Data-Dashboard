@@ -32,9 +32,9 @@ import {
   DeleteOutlined,
   PlusOutlined,
   QuestionCircleOutlined,
-  DownloadOutlined, // Newly added
+  DownloadOutlined,
 } from '@ant-design/icons';
-import { CSVLink } from 'react-csv'; // Newly added
+import { CSVLink } from 'react-csv';
 import './DataTable.css';
 
 const { Text, Title } = Typography;
@@ -319,7 +319,6 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
     },
   ];
 
-  // Newly added export handler using react-csv's CSVLink
   const headers = [
     { label: 'Product Name', key: 'product_name' },
     { label: 'Category', key: 'category' },
@@ -421,7 +420,6 @@ const DataTable: ForwardRefRenderFunction<DataTableRef, {}> = (props, ref) => {
               <Option value="Electronics">Electronics</Option>
               <Option value="Clothing">Clothing</Option>
               <Option value="Home">Home</Option>
-              {/* Add more categories as needed */}
             </Select>
           </Form.Item>
           <Form.Item
